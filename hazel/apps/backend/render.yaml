@@ -1,0 +1,10 @@
+services:
+  - type: web
+    name: hazel-backend
+    runtime: node
+    buildCommand: npm install
+    startCommand: npm run start
+    rootDir: apps/backend
+    env: production
+    plan: starter
+

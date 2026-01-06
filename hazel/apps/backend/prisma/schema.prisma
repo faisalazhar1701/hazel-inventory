@@ -4,7 +4,7 @@ generator client {
 
 datasource db {
   provider = "sqlite"
-  url      = "file:/Users/faisalazhar/Desktop/inventory system/hazel/apps/backend/prisma/dev.db"
+  url      = "file:/opt/render/project/src/apps/backend/prisma/dev.db"
 }
 
 model Product {
