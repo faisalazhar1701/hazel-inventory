@@ -6,10 +6,9 @@
   "private": true,
   "license": "UNLICENSED",
   "scripts": {
-    "build": "nest build",
-    "postbuild": "ls -R dist",
+    "build": "nest build backend",
     "start": "node dist/main.js",
-    "start:dev": "nest start --watch"
+    "start:dev": "nest start backend --watch"
   },
   "dependencies": {
     "@hazel/shared-types": "file:../../packages/shared-types",
