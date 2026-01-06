@@ -7,7 +7,8 @@
   "license": "UNLICENSED",
   "scripts": {
     "build": "nest build backend",
-    "start": "node dist/apps/backend/main.js",
+    "postbuild": "echo '---- DIST TREE ----' && ls -R dist",
+    "start": "node dist/apps/backend/src/main.js",
     "start:dev": "nest start backend --watch"
   },
   "dependencies": {
