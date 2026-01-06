@@ -1,0 +1,18 @@
+{
+  "name": "@hazel/api-client",
+  "version": "0.0.1",
+  "description": "Typed API client for Hazel frontend",
+  "main": "dist/src/index.js",
+  "types": "dist/src/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "watch": "tsc --watch"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "typescript": "^5.8.3"
+  }
+}
+

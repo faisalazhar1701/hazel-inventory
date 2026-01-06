@@ -1,0 +1,9 @@
+{
+  "name": "hazel",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ]
+}
+
