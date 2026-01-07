@@ -1,5 +1,5 @@
 import { apiClient } from './client';
-import { OrderChannel, OrderStatus } from '@hazel/shared-types';
+import { OrderChannel, OrderStatus } from '../lib/shared-types';
 
 export interface OrderResponse {
   id: string;
