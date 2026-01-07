@@ -1,5 +1,2 @@
-export * from '../enums/OrderChannel';
-export * from '../enums/OrderStatus';
-export * from '../enums/ProductionStatus';
-export * from '../enums/UserRole';
-export * from '../enums/InventoryItemType';
+// Constants for shared types can be added here.
+export {};
