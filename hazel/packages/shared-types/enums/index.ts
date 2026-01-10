@@ -3,4 +3,5 @@ export * from './OrderChannel';
 export * from './InventoryItemType';
 export * from './OrderStatus';
 export * from './ProductionStatus';
+export * from './CustomerType';
 

@@ -21,7 +21,6 @@ import { useFormik } from 'formik';
 import * as Yup from 'yup';
 import BreadCrumb from '../../../Components/Common/BreadCrumb';
 import { collectionsAPI, Collection, CreateCollectionDto, UpdateCollectionDto } from '../../../api/collections';
-import { brandsAPI } from '../../../api/brands';
 import { toast } from 'react-toastify';
 import FeatherIcon from 'feather-icons-react';
 
@@ -29,9 +28,7 @@ const Collections: React.FC = () => {
   document.title = 'Collections | Hazel Inventory';
 
   const [collections, setCollections] = useState<Collection[]>([]);
-  const [brands, setBrands] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [loadingBrands, setLoadingBrands] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingCollection, setEditingCollection] = useState<Collection | null>(null);
@@ -40,7 +37,6 @@ const Collections: React.FC = () => {
 
   useEffect(() => {
     loadCollections();
-    loadBrands();
   }, []);
 
   const loadCollections = async () => {
@@ -58,31 +54,17 @@ const Collections: React.FC = () => {
     }
   };
 
-  const loadBrands = async () => {
-    try {
-      setLoadingBrands(true);
-      const data = await brandsAPI.listBrands();
-      setBrands(data);
-    } catch (err) {
-      console.error('Failed to load brands:', err);
-    } finally {
-      setLoadingBrands(false);
-    }
-  };
-
   const validation = useFormik({
     enableReinitialize: true,
     initialValues: {
       name: editingCollection?.name || '',
       season: editingCollection?.season || '',
       year: editingCollection?.year?.toString() || '',
-      brandId: editingCollection?.brandId || '',
     },
     validationSchema: Yup.object({
       name: Yup.string().required('Collection name is required'),
       season: Yup.string(),
       year: Yup.number().min(1900, 'Year must be at least 1900'),
-      brandId: Yup.string(),
     }),
     onSubmit: async (values) => {
       setSubmitting(true);
@@ -92,7 +74,6 @@ const Collections: React.FC = () => {
             name: values.name,
             season: values.season || undefined,
             year: values.year ? parseInt(values.year) : undefined,
-            brandId: values.brandId || undefined,
           };
           await collectionsAPI.updateCollection(editingCollection.id, data);
           toast.success('Collection updated successfully');
@@ -101,7 +82,6 @@ const Collections: React.FC = () => {
             name: values.name,
             season: values.season || undefined,
             year: values.year ? parseInt(values.year) : undefined,
-            brandId: values.brandId || undefined,
           };
           await collectionsAPI.createCollection(data);
           toast.success('Collection created successfully');
@@ -211,7 +191,6 @@ const Collections: React.FC = () => {
                         <thead className="table-light">
                           <tr>
                             <th scope="col">Name</th>
-                            <th scope="col">Brand</th>
                             <th scope="col">Season</th>
                             <th scope="col">Year</th>
                             <th scope="col">Products</th>
@@ -224,11 +203,6 @@ const Collections: React.FC = () => {
                             <tr key={collection.id}>
                               <td>
                                 <strong>{collection.name}</strong>
-                              </td>
-                              <td>
-                                <span className="text-muted">
-                                  {collection.brand?.name || '-'}
-                                </span>
                               </td>
                               <td>{collection.season || '-'}</td>
                               <td>{collection.year || '-'}</td>
@@ -331,27 +305,6 @@ const Collections: React.FC = () => {
                   <FormFeedback type="invalid">{validation.errors.year}</FormFeedback>
                 )}
               </div>
-            </div>
-            <div className="mb-3">
-              <Label htmlFor="brandId" className="form-label">
-                Brand
-              </Label>
-              <Input
-                type="select"
-                id="brandId"
-                name="brandId"
-                value={validation.values.brandId}
-                onChange={validation.handleChange}
-                onBlur={validation.handleBlur}
-                disabled={submitting || loadingBrands}
-              >
-                <option value="">Select a brand</option>
-                {brands.map((brand) => (
-                  <option key={brand.id} value={brand.id}>
-                    {brand.name}
-                  </option>
-                ))}
-              </Input>
             </div>
             <div className="d-flex justify-content-end gap-2">
               <Button

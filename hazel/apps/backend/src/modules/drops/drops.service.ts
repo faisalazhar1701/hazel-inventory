@@ -56,10 +56,9 @@ export class DropsService {
   }
 
   async listDrops(): Promise<Drop[]> {
-    return this.prisma.drop.findMany({
-      orderBy: {
-        releaseDate: 'desc',
-      },
+    // Fetch drops and sort in memory to handle nullable releaseDate safely
+    // SQLite can handle null ordering, but in-memory sort is more predictable
+    const drops = await this.prisma.drop.findMany({
       include: {
         collection: {
           select: {
@@ -67,15 +66,17 @@ export class DropsService {
             name: true,
             season: true,
             year: true,
-            brand: {
-              select: {
-                id: true,
-                name: true,
-              },
-            },
           },
         },
       },
+    });
+
+    // Sort by releaseDate (nulls last), then by name as secondary sort
+    return drops.sort((a, b) => {
+      if (!a.releaseDate && !b.releaseDate) return 0;
+      if (!a.releaseDate) return 1; // nulls last
+      if (!b.releaseDate) return -1; // nulls last
+      return b.releaseDate.getTime() - a.releaseDate.getTime(); // desc order
     });
   }
 
@@ -84,13 +85,11 @@ export class DropsService {
       where: { id },
       include: {
         collection: {
-          include: {
-            brand: {
-              select: {
-                id: true,
-                name: true,
-              },
-            },
+          select: {
+            id: true,
+            name: true,
+            season: true,
+            year: true,
           },
         },
       },

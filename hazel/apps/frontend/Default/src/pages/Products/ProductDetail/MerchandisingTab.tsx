@@ -4,7 +4,6 @@ import { useFormik } from 'formik';
 import * as Yup from 'yup';
 import FeatherIcon from 'feather-icons-react';
 import { ProductWithVariants, productsAPI, AssignProductRelationsDto } from '../../../api/products';
-import { brandsAPI } from '../../../api/brands';
 import { collectionsAPI } from '../../../api/collections';
 import { stylesAPI, CreateStyleDto } from '../../../api/styles';
 import { toast } from 'react-toastify';
@@ -15,38 +14,19 @@ interface MerchandisingTabProps {
 }
 
 const MerchandisingTab: React.FC<MerchandisingTabProps> = ({ product, onReload }) => {
-  const [brands, setBrands] = useState<any[]>([]);
   const [collections, setCollections] = useState<any[]>([]);
   const [styles, setStyles] = useState<any[]>([]);
-  const [loadingBrands, setLoadingBrands] = useState(false);
   const [loadingCollections, setLoadingCollections] = useState(false);
   const [loadingStyles, setLoadingStyles] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [isCreateStyleModalOpen, setIsCreateStyleModalOpen] = useState(false);
   const [creatingStyle, setCreatingStyle] = useState(false);
 
-  const loadBrands = async () => {
-    try {
-      setLoadingBrands(true);
-      const data = await brandsAPI.listBrands();
-      setBrands(data);
-    } catch (error) {
-      console.error('Failed to load brands:', error);
-      toast.error('Failed to load brands');
-    } finally {
-      setLoadingBrands(false);
-    }
-  };
-
-  const loadCollections = async (brandId?: string) => {
+  const loadCollections = async () => {
     try {
       setLoadingCollections(true);
       const allCollections = await collectionsAPI.listCollections();
-      // Filter by brand if brandId is selected
-      const filtered = brandId
-        ? allCollections.filter((c) => c.brandId === brandId)
-        : allCollections;
-      setCollections(filtered);
+      setCollections(allCollections);
     } catch (error) {
       console.error('Failed to load collections:', error);
       toast.error('Failed to load collections');
@@ -69,7 +49,6 @@ const MerchandisingTab: React.FC<MerchandisingTabProps> = ({ product, onReload }
   };
 
   useEffect(() => {
-    loadBrands();
     loadCollections();
     loadStyles();
   }, []);
@@ -77,12 +56,10 @@ const MerchandisingTab: React.FC<MerchandisingTabProps> = ({ product, onReload }
   const validation = useFormik({
     enableReinitialize: true,
     initialValues: {
-      brandId: (product as any).brand?.id || '',
       collectionId: (product as any).collection?.id || '',
       styleId: (product as any).style?.id || '',
     },
     validationSchema: Yup.object({
-      brandId: Yup.string(),
       collectionId: Yup.string(),
       styleId: Yup.string(),
     }),
@@ -90,7 +67,6 @@ const MerchandisingTab: React.FC<MerchandisingTabProps> = ({ product, onReload }
       setSubmitting(true);
       try {
         const data: AssignProductRelationsDto = {
-          brandId: values.brandId || undefined,
           collectionId: values.collectionId || undefined,
           styleId: values.styleId || undefined,
         };
@@ -106,10 +82,6 @@ const MerchandisingTab: React.FC<MerchandisingTabProps> = ({ product, onReload }
       }
     },
   });
-
-  useEffect(() => {
-    loadCollections(validation.values.brandId || undefined);
-  }, [validation.values.brandId]);
 
   const styleValidation = useFormik({
     enableReinitialize: true,
@@ -154,45 +126,14 @@ const MerchandisingTab: React.FC<MerchandisingTabProps> = ({ product, onReload }
       <div className="mb-4">
         <h6 className="mb-3">Merchandising Information</h6>
         <Alert color="info" className="mb-3">
-          Assign this product to a brand, collection, and style to organize your merchandise.
+          Assign this product to a collection and style to organize your merchandise.
         </Alert>
       </div>
 
       <Form onSubmit={validation.handleSubmit}>
         <div className="mb-3">
-          <Label htmlFor="brandId" className="form-label">
-            Brand
-          </Label>
-          <Input
-            type="select"
-            id="brandId"
-            name="brandId"
-            value={validation.values.brandId}
-            onChange={(e) => {
-              validation.handleChange(e);
-              // Reset collection when brand changes
-              validation.setFieldValue('collectionId', '');
-            }}
-            onBlur={validation.handleBlur}
-            disabled={submitting || loadingBrands}
-          >
-            <option value="">Select a brand</option>
-            {brands.map((brand) => (
-              <option key={brand.id} value={brand.id}>
-                {brand.name}
-              </option>
-            ))}
-          </Input>
-          {(product as any).brand && (
-            <div className="mt-2">
-              <Badge color="soft-info">Current: {(product as any).brand.name}</Badge>
-            </div>
-          )}
-        </div>
-
-        <div className="mb-3">
           <Label htmlFor="collectionId" className="form-label">
-            Collection {validation.values.brandId && '(Filtered by Brand)'}
+            Collection
           </Label>
           <Input
             type="select"
@@ -201,13 +142,11 @@ const MerchandisingTab: React.FC<MerchandisingTabProps> = ({ product, onReload }
             value={validation.values.collectionId}
             onChange={validation.handleChange}
             onBlur={validation.handleBlur}
-            disabled={submitting || loadingCollections || !validation.values.brandId}
+            disabled={submitting || loadingCollections}
           >
             <option value="">
-              {!validation.values.brandId
-                ? 'Select a brand first'
-                : collections.length === 0
-                ? 'No collections found for this brand'
+              {collections.length === 0
+                ? 'No collections found'
                 : 'Select a collection'}
             </option>
             {collections.map((collection) => (

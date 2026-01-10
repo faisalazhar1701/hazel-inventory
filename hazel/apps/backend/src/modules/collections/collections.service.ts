@@ -16,10 +16,6 @@ export class CreateCollectionDto {
   @Min(1900)
   @IsOptional()
   year?: number;
-
-  @IsString()
-  @IsOptional()
-  brandId?: string;
 }
 
 export class UpdateCollectionDto {
@@ -35,10 +31,6 @@ export class UpdateCollectionDto {
   @Min(1900)
   @IsOptional()
   year?: number;
-
-  @IsString()
-  @IsOptional()
-  brandId?: string;
 }
 
 @Injectable()
@@ -46,22 +38,11 @@ export class CollectionsService {
   constructor(private prisma: PrismaService) {}
 
   async createCollection(data: CreateCollectionDto): Promise<Collection> {
-    // Verify brand exists if brandId is provided
-    if (data.brandId) {
-      const brand = await this.prisma.brand.findUnique({
-        where: { id: data.brandId },
-      });
-      if (!brand) {
-        throw new NotFoundException(`Brand with ID ${data.brandId} not found`);
-      }
-    }
-
     return this.prisma.collection.create({
       data: {
         name: data.name,
         season: data.season,
         year: data.year,
-        brandId: data.brandId || null,
       },
     });
   }
@@ -72,12 +53,6 @@ export class CollectionsService {
         name: 'asc',
       },
       include: {
-        brand: {
-          select: {
-            id: true,
-            name: true,
-          },
-        },
         _count: {
           select: {
             products: true,
@@ -88,17 +63,10 @@ export class CollectionsService {
     });
   }
 
-  async getCollectionById(id: string): Promise<Collection & { brand: any; _count: { products: number; drops: number } }> {
+  async getCollectionById(id: string): Promise<Collection & { _count: { products: number; drops: number } }> {
     const collection = await this.prisma.collection.findUnique({
       where: { id },
       include: {
-        brand: {
-          select: {
-            id: true,
-            name: true,
-            description: true,
-          },
-        },
         drops: true,
         products: {
           select: {
@@ -132,23 +100,12 @@ export class CollectionsService {
       throw new NotFoundException(`Collection with ID ${id} not found`);
     }
 
-    // Verify brand exists if brandId is provided
-    if (data.brandId) {
-      const brand = await this.prisma.brand.findUnique({
-        where: { id: data.brandId },
-      });
-      if (!brand) {
-        throw new NotFoundException(`Brand with ID ${data.brandId} not found`);
-      }
-    }
-
     return this.prisma.collection.update({
       where: { id },
       data: {
         name: data.name,
         season: data.season,
         year: data.year,
-        brandId: data.brandId !== undefined ? (data.brandId || null) : undefined,
       },
     });
   }

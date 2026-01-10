@@ -9,6 +9,8 @@ const Navdata = () => {
     const [isMerchandising, setIsMerchandising] = useState<boolean>(false);
     const [isInventory, setIsInventory] = useState<boolean>(false);
     const [isOrders, setIsOrders] = useState<boolean>(false);
+    const [isCRM, setIsCRM] = useState<boolean>(false);
+    const [isIntelligence, setIsIntelligence] = useState<boolean>(false);
     const [isBaseUi, setIsBaseUi] = useState<boolean>(false);
     const [isAdvanceUi, setIsAdvanceUi] = useState<boolean>(false);
     const [isForms, setIsForms] = useState<boolean>(false);
@@ -134,7 +136,6 @@ const Navdata = () => {
             },
             stateVariables: isMerchandising,
             subItems: [
-                { id: "brands", label: "Brands", link: "/merchandising/brands", parentId: "merchandising" },
                 { id: "collections", label: "Collections", link: "/merchandising/collections", parentId: "merchandising" },
                 { id: "drops", label: "Drops", link: "/merchandising/drops", parentId: "merchandising" },
                 { id: "styles", label: "Styles", link: "/merchandising/styles", parentId: "merchandising" },
@@ -173,6 +174,39 @@ const Navdata = () => {
             subItems: [
                 { id: "orderList", label: "Order List", link: "/orders", parentId: "orders" },
                 { id: "createOrder", label: "Create Order", link: "/orders/create", parentId: "orders" },
+            ],
+        },
+        {
+            id: "crm",
+            label: "CRM",
+            icon: "ri-user-line",
+            link: "/#",
+            click: function (e: any) {
+                e.preventDefault();
+                setIsCRM(!isCRM);
+                setIscurrentState('CRM');
+                updateIconSidebar(e);
+            },
+            stateVariables: isCRM,
+            subItems: [
+                { id: "customers", label: "Customers", link: "/customers", parentId: "crm" },
+            ],
+        },
+        {
+            id: "intelligence",
+            label: "Intelligence",
+            icon: "ri-line-chart-line",
+            link: "/#",
+            click: function (e: any) {
+                e.preventDefault();
+                setIsIntelligence(!isIntelligence);
+                setIscurrentState('Intelligence');
+                updateIconSidebar(e);
+            },
+            stateVariables: isIntelligence,
+            subItems: [
+                { id: "forecast", label: "Demand Forecasting", link: "/forecast", parentId: "intelligence" },
+                { id: "replenishment", label: "Replenishment", link: "/replenishment", parentId: "intelligence" },
             ],
         },
         {

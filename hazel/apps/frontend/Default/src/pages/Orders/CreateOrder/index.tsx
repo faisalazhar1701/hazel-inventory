@@ -21,6 +21,7 @@ import BreadCrumb from '../../../Components/Common/BreadCrumb';
 import { ordersAPI, CreateOrderDto, OrderChannel, CreateOrderItemDto } from '../../../api/orders';
 import { productsAPI } from '../../../api/products';
 import { warehousesAPI } from '../../../api/warehouses';
+import { customersAPI, Customer, CustomerType } from '../../../api/customers';
 import { toast } from 'react-toastify';
 import FeatherIcon from 'feather-icons-react';
 
@@ -37,6 +38,7 @@ const CreateOrder: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [products, setProducts] = useState<any[]>([]);
   const [warehouses, setWarehouses] = useState<any[]>([]);
+  const [customers, setCustomers] = useState<Customer[]>([]);
   const [items, setItems] = useState<OrderItemForm[]>([
     { productVariantId: '', warehouseId: '', quantity: 1, unitPrice: 0 },
   ]);
@@ -44,6 +46,7 @@ const CreateOrder: React.FC = () => {
   useEffect(() => {
     loadProducts();
     loadWarehouses();
+    loadCustomers();
   }, []);
 
   const loadProducts = async () => {
@@ -76,6 +79,17 @@ const CreateOrder: React.FC = () => {
     }
   };
 
+  const loadCustomers = async () => {
+    try {
+      const data = await customersAPI.listCustomers();
+      // Filter to only active customers
+      setCustomers(data.filter(c => c.status === 'ACTIVE'));
+    } catch (err) {
+      console.error('Failed to load customers:', err);
+      // Don't show error - customers are optional
+    }
+  };
+
   const allVariants = products.flatMap((product) =>
     (product.variants || []).map((variant: any) => ({
       ...variant,
@@ -87,11 +101,17 @@ const CreateOrder: React.FC = () => {
     enableReinitialize: true,
     initialValues: {
       channel: OrderChannel.DTC,
+      customerId: '',
       currency: 'USD',
     },
     validationSchema: Yup.object({
       channel: Yup.string().required('Channel is required'),
       currency: Yup.string().required('Currency is required'),
+      customerId: Yup.string().when('channel', {
+        is: (channel: OrderChannel) => channel === OrderChannel.B2B || channel === OrderChannel.WHOLESALE,
+        then: (schema) => schema.required('Customer is required for B2B and WHOLESALE orders'),
+        otherwise: (schema) => schema,
+      }),
     }),
     onSubmit: async (values) => {
       if (items.length === 0 || items.some((item) => !item.productVariantId || !item.warehouseId || item.quantity <= 0)) {
@@ -112,6 +132,7 @@ const CreateOrder: React.FC = () => {
           channel: values.channel as OrderChannel,
           currency: values.currency,
           items: orderItems,
+          ...(values.customerId && { customerId: values.customerId }),
         };
 
         const order = await ordersAPI.createOrder(data);
@@ -155,7 +176,7 @@ const CreateOrder: React.FC = () => {
                 <CardBody>
                   <Form onSubmit={validation.handleSubmit}>
                     <Row>
-                      <Col md={6}>
+                      <Col md={4}>
                         <div className="mb-3">
                           <Label className="form-label">
                             Channel <span className="text-danger">*</span>
@@ -164,7 +185,13 @@ const CreateOrder: React.FC = () => {
                             type="select"
                             name="channel"
                             value={validation.values.channel}
-                            onChange={validation.handleChange}
+                            onChange={(e) => {
+                              validation.handleChange(e);
+                              // Clear customer if switching to DTC
+                              if (e.target.value === OrderChannel.DTC) {
+                                validation.setFieldValue('customerId', '');
+                              }
+                            }}
                             invalid={validation.touched.channel && !!validation.errors.channel}
                           >
                             {Object.values(OrderChannel).map((channel) => (
@@ -178,7 +205,49 @@ const CreateOrder: React.FC = () => {
                           )}
                         </div>
                       </Col>
-                      <Col md={6}>
+                      <Col md={4}>
+                        <div className="mb-3">
+                          <Label className="form-label">
+                            Customer
+                            {(validation.values.channel === OrderChannel.B2B || validation.values.channel === OrderChannel.WHOLESALE) && (
+                              <span className="text-danger"> *</span>
+                            )}
+                          </Label>
+                          <Input
+                            type="select"
+                            name="customerId"
+                            value={validation.values.customerId}
+                            onChange={validation.handleChange}
+                            invalid={validation.touched.customerId && !!validation.errors.customerId}
+                            disabled={validation.values.channel === OrderChannel.DTC}
+                          >
+                            <option value="">Select customer</option>
+                            {customers
+                              .filter(c => {
+                                // Filter customers by type based on channel
+                                if (validation.values.channel === OrderChannel.B2B) {
+                                  return c.type === CustomerType.B2B;
+                                }
+                                if (validation.values.channel === OrderChannel.WHOLESALE) {
+                                  return c.type === CustomerType.WHOLESALE;
+                                }
+                                return true; // Show all for other channels
+                              })
+                              .map((customer) => (
+                                <option key={customer.id} value={customer.id}>
+                                  {customer.companyName} ({customer.type})
+                                </option>
+                              ))}
+                          </Input>
+                          {validation.touched.customerId && validation.errors.customerId && (
+                            <FormFeedback type="invalid">{validation.errors.customerId}</FormFeedback>
+                          )}
+                          {(validation.values.channel === OrderChannel.B2B || validation.values.channel === OrderChannel.WHOLESALE) && (
+                            <small className="text-muted">Required for {validation.values.channel} orders</small>
+                          )}
+                        </div>
+                      </Col>
+                      <Col md={4}>
                         <div className="mb-3">
                           <Label className="form-label">
                             Currency <span className="text-danger">*</span>

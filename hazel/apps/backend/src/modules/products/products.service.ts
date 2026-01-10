@@ -25,10 +25,6 @@ export class CreateProductDto {
 
   @IsString()
   @IsOptional()
-  brandId?: string;
-
-  @IsString()
-  @IsOptional()
   collectionId?: string;
 }
 
@@ -70,10 +66,6 @@ export class UpdateLifecycleStatusDto {
 export class AssignProductRelationsDto {
   @IsString()
   @IsOptional()
-  brandId?: string;
-
-  @IsString()
-  @IsOptional()
   collectionId?: string;
 
   @IsString()
@@ -86,16 +78,6 @@ export class ProductsService {
   constructor(private prisma: PrismaService) {}
 
   async createProduct(data: CreateProductDto): Promise<Product> {
-    // Verify brand exists if brandId is provided
-    if (data.brandId) {
-      const brand = await this.prisma.brand.findUnique({
-        where: { id: data.brandId },
-      });
-      if (!brand) {
-        throw new NotFoundException(`Brand with ID ${data.brandId} not found`);
-      }
-    }
-
     // Verify collection exists if collectionId is provided
     if (data.collectionId) {
       const collection = await this.prisma.collection.findUnique({
@@ -106,14 +88,12 @@ export class ProductsService {
       }
     }
 
-
     return this.prisma.product.create({
       data: {
         name: data.name,
         sku: data.sku,
         description: data.description,
         lifecycleStatus: data.lifecycleStatus || 'DRAFT',
-        brandId: data.brandId || null,
         collectionId: data.collectionId || null,
       },
     });
@@ -125,12 +105,6 @@ export class ProductsService {
         createdAt: 'desc',
       },
       include: {
-        brand: {
-          select: {
-            id: true,
-            name: true,
-          },
-        },
         collection: {
           select: {
             id: true,
@@ -150,29 +124,16 @@ export class ProductsService {
     });
   }
 
-  async getProductById(id: string): Promise<Product & { variants: (ProductVariant & { bomAsParent: (BillOfMaterial & { componentVariant: ProductVariant })[] })[]; brand: any; collection: any; style: any }> {
+  async getProductById(id: string): Promise<Product & { variants: (ProductVariant & { bomAsParent: (BillOfMaterial & { componentVariant: ProductVariant })[] })[]; collection: any; style: any }> {
     const product = await this.prisma.product.findUnique({
       where: { id },
       include: {
-        brand: {
-          select: {
-            id: true,
-            name: true,
-            description: true,
-          },
-        },
         collection: {
           select: {
             id: true,
             name: true,
             season: true,
             year: true,
-            brand: {
-              select: {
-                id: true,
-                name: true,
-              },
-            },
           },
         },
         style: {
@@ -294,18 +255,6 @@ export class ProductsService {
       throw new NotFoundException(`Product with ID ${id} not found`);
     }
 
-    // Verify brand exists if brandId is provided
-    if (data.brandId !== undefined) {
-      if (data.brandId) {
-        const brand = await this.prisma.brand.findUnique({
-          where: { id: data.brandId },
-        });
-        if (!brand) {
-          throw new NotFoundException(`Brand with ID ${data.brandId} not found`);
-        }
-      }
-    }
-
     // Verify collection exists if collectionId is provided
     if (data.collectionId !== undefined) {
       if (data.collectionId) {
@@ -356,16 +305,9 @@ export class ProductsService {
     return this.prisma.product.update({
       where: { id },
       data: {
-        brandId: data.brandId !== undefined ? (data.brandId || null) : undefined,
         collectionId: data.collectionId !== undefined ? (data.collectionId || null) : undefined,
       },
       include: {
-        brand: {
-          select: {
-            id: true,
-            name: true,
-          },
-        },
         collection: {
           select: {
             id: true,

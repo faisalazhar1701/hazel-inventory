@@ -5,19 +5,12 @@ export interface Collection {
   name: string;
   season?: string;
   year?: number;
-  brandId?: string;
-  brand?: Brand;
   drops?: Drop[];
   products?: Product[];
   _count?: {
     products: number;
     drops: number;
   };
-}
-
-export interface Brand {
-  id: string;
-  name: string;
 }
 
 export interface Drop {
@@ -35,14 +28,12 @@ export interface CreateCollectionDto {
   name: string;
   season?: string;
   year?: number;
-  brandId?: string;
 }
 
 export interface UpdateCollectionDto {
   name?: string;
   season?: string;
   year?: number;
-  brandId?: string;
 }
 
 class CollectionsAPI {

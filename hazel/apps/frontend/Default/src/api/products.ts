@@ -53,20 +53,11 @@ export interface UpdateLifecycleStatusDto {
 }
 
 export interface ProductWithVariants extends Product {
-  brand?: {
-    id: string;
-    name: string;
-    description?: string;
-  };
   collection?: {
     id: string;
     name: string;
     season?: string;
     year?: number;
-    brand?: {
-      id: string;
-      name: string;
-    };
   };
   style?: {
     id: string;
@@ -127,7 +118,6 @@ class ProductsAPI {
 }
 
 export interface AssignProductRelationsDto {
-  brandId?: string;
   collectionId?: string;
   styleId?: string;
 }

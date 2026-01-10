@@ -52,6 +52,17 @@ export class OrdersController {
     return this.ordersService.shipOrder(id);
   }
 
+  @Patch(':id/fulfill')
+  @HttpCode(HttpStatus.OK)
+  async fulfillOrder(@Param('id') id: string) {
+    return this.ordersService.fulfillOrder(id);
+  }
+
+  @Get(':id/inventory-impact')
+  async getInventoryImpact(@Param('id') id: string) {
+    return this.ordersService.getInventoryImpact(id);
+  }
+
   @Patch(':id/return')
   @HttpCode(HttpStatus.OK)
   async returnOrder(

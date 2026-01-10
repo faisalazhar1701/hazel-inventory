@@ -28,9 +28,10 @@ import { useFormik } from 'formik';
 import * as Yup from 'yup';
 import classNames from 'classnames';
 import BreadCrumb from '../../../Components/Common/BreadCrumb';
-import { ordersAPI, Order, OrderStatus, ReturnOrderDto } from '../../../api/orders';
+import { ordersAPI, Order, OrderStatus, OrderChannel, ReturnOrderDto, InventoryImpact } from '../../../api/orders';
 import { toast } from 'react-toastify';
 import FeatherIcon from 'feather-icons-react';
+import { Link } from 'react-router-dom';
 
 const OrderDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -42,6 +43,8 @@ const OrderDetail: React.FC = () => {
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [isReturnModalOpen, setIsReturnModalOpen] = useState(false);
   const [warehouses, setWarehouses] = useState<any[]>([]);
+  const [inventoryImpact, setInventoryImpact] = useState<InventoryImpact | null>(null);
+  const [loadingImpact, setLoadingImpact] = useState(false);
 
   useEffect(() => {
     if (id) {
@@ -73,12 +76,30 @@ const OrderDetail: React.FC = () => {
       setError(null);
       const data = await ordersAPI.getOrderById(id);
       setOrder(data);
+      // Load inventory impact when order is loaded
+      if (data) {
+        loadInventoryImpact();
+      }
     } catch (err) {
       console.error('Failed to load order:', err);
       setError(err instanceof Error ? err.message : 'Failed to load order');
       toast.error('Failed to load order');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadInventoryImpact = async () => {
+    if (!id) return;
+    try {
+      setLoadingImpact(true);
+      const impact = await ordersAPI.getInventoryImpact(id);
+      setInventoryImpact(impact);
+    } catch (err) {
+      console.error('Failed to load inventory impact:', err);
+      // Don't show error toast - this is optional data
+    } finally {
+      setLoadingImpact(false);
     }
   };
 
@@ -124,6 +145,20 @@ const OrderDetail: React.FC = () => {
     }
   };
 
+  const handleFulfill = async () => {
+    if (!id || !window.confirm('Mark this order as fulfilled? This will complete the order lifecycle.')) return;
+    setActionLoading('fulfill');
+    try {
+      await ordersAPI.fulfillOrder(id);
+      toast.success('Order fulfilled successfully');
+      loadOrder();
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to fulfill order');
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
   const getStatusBadgeColor = (status: OrderStatus) => {
     switch (status) {
       case OrderStatus.DRAFT:
@@ -138,6 +173,8 @@ const OrderDetail: React.FC = () => {
         return 'success';
       case OrderStatus.COMPLETED:
         return 'success';
+      case OrderStatus.FULFILLED:
+        return 'success';
       case OrderStatus.CANCELLED:
         return 'danger';
       case OrderStatus.RETURNED:
@@ -147,10 +184,40 @@ const OrderDetail: React.FC = () => {
     }
   };
 
+  const getChannelLabel = (channel: OrderChannel) => {
+    switch (channel) {
+      case OrderChannel.DTC:
+        return 'Direct-to-Consumer';
+      case OrderChannel.B2B:
+        return 'Business-to-Business';
+      case OrderChannel.WHOLESALE:
+        return 'Wholesale';
+      case OrderChannel.RETAIL:
+        return 'Retail';
+      case OrderChannel.POS:
+        return 'Point of Sale';
+      default:
+        return channel;
+    }
+  };
+
+  // Status transition rules - guarded actions
   const canConfirm = order?.status === OrderStatus.DRAFT;
-  const canCancel = order?.status && ![OrderStatus.CANCELLED, OrderStatus.SHIPPED, OrderStatus.DELIVERED, OrderStatus.COMPLETED].includes(order.status);
+  const canCancel = order?.status && ![OrderStatus.CANCELLED, OrderStatus.FULFILLED, OrderStatus.RETURNED].includes(order.status);
   const canShip = order?.status === OrderStatus.CONFIRMED || order?.status === OrderStatus.ALLOCATED;
-  const canReturn = order?.status && [OrderStatus.SHIPPED, OrderStatus.DELIVERED, OrderStatus.COMPLETED].includes(order.status);
+  const canFulfill = order?.status && [
+    OrderStatus.CONFIRMED,
+    OrderStatus.ALLOCATED,
+    OrderStatus.SHIPPED,
+    OrderStatus.DELIVERED,
+    OrderStatus.COMPLETED,
+  ].includes(order.status);
+  const canReturn = order?.status && [
+    OrderStatus.FULFILLED,
+    OrderStatus.SHIPPED,
+    OrderStatus.DELIVERED,
+    OrderStatus.COMPLETED,
+  ].includes(order.status);
 
   const returnValidation = useFormik({
     enableReinitialize: true,
@@ -273,6 +340,16 @@ const OrderDetail: React.FC = () => {
                         Ship Order
                       </Button>
                     )}
+                    {canFulfill && (
+                      <Button
+                        color="success"
+                        onClick={handleFulfill}
+                        disabled={actionLoading !== null}
+                      >
+                        {actionLoading === 'fulfill' ? <Spinner size="sm" className="me-1" /> : null}
+                        Fulfill Order
+                      </Button>
+                    )}
                     {canReturn && (
                       <Button
                         color="info"
@@ -320,6 +397,14 @@ const OrderDetail: React.FC = () => {
                         Reservations
                       </NavLink>
                     </NavItem>
+                    <NavItem>
+                      <NavLink
+                        className={classNames({ active: activeTab === '4' })}
+                        onClick={() => setActiveTab('4')}
+                      >
+                        Inventory Impact
+                      </NavLink>
+                    </NavItem>
                   </Nav>
 
                   <TabContent activeTab={activeTab} className="p-4">
@@ -332,11 +417,83 @@ const OrderDetail: React.FC = () => {
                           </div>
                           <div className="mb-3">
                             <Label className="form-label">Channel</Label>
-                            <p><Badge color="info">{order.channel}</Badge></p>
+                            <p>
+                              <Badge color="info">{getChannelLabel(order.channel)}</Badge>
+                              <small className="text-muted ms-2">({order.channel})</small>
+                            </p>
                           </div>
+                          {order.customer && (
+                            <div className="mb-3">
+                              <Label className="form-label">Customer</Label>
+                              <p>
+                                <Link to={`/customers/${order.customer.id}`}>
+                                  <strong>{order.customer.companyName}</strong>
+                                </Link>
+                                <Badge color="secondary" className="ms-2">{order.customer.type}</Badge>
+                                {order.customer.status !== 'ACTIVE' && (
+                                  <Badge color="warning" className="ms-1">{order.customer.status}</Badge>
+                                )}
+                              </p>
+                            </div>
+                          )}
                           <div className="mb-3">
                             <Label className="form-label">Status</Label>
                             <p><Badge color={getStatusBadgeColor(order.status)}>{order.status}</Badge></p>
+                          </div>
+                          <div className="mb-3">
+                            <Label className="form-label">Status Timeline</Label>
+                            <div className="mt-2">
+                              <div className="d-flex align-items-center mb-2">
+                                <div className={classNames('rounded-circle', {
+                                  'bg-success': true,
+                                  'bg-secondary': order.status === OrderStatus.DRAFT,
+                                })} style={{ width: '12px', height: '12px', marginRight: '10px' }} />
+                                <span className={classNames({ 'text-muted': order.status === OrderStatus.DRAFT })}>
+                                  Draft {order.createdAt && <small className="text-muted">({new Date(order.createdAt).toLocaleString()})</small>}
+                                </span>
+                              </div>
+                              <div className="d-flex align-items-center mb-2">
+                                <div className={classNames('rounded-circle', {
+                                  'bg-info': [OrderStatus.CONFIRMED, OrderStatus.ALLOCATED, OrderStatus.SHIPPED, OrderStatus.DELIVERED, OrderStatus.COMPLETED, OrderStatus.FULFILLED, OrderStatus.RETURNED].includes(order.status),
+                                  'bg-secondary': order.status === OrderStatus.DRAFT || order.status === OrderStatus.CANCELLED,
+                                })} style={{ width: '12px', height: '12px', marginRight: '10px' }} />
+                                <span className={classNames({ 'text-muted': order.status === OrderStatus.DRAFT || order.status === OrderStatus.CANCELLED })}>
+                                  Confirmed {order.confirmedAt && <small className="text-muted">({new Date(order.confirmedAt).toLocaleString()})</small>}
+                                </span>
+                              </div>
+                              {(order.status === OrderStatus.ALLOCATED || order.shippedAt) && (
+                                <div className="d-flex align-items-center mb-2">
+                                  <div className="rounded-circle bg-primary" style={{ width: '12px', height: '12px', marginRight: '10px' }} />
+                                  <span>
+                                    {order.status === OrderStatus.ALLOCATED ? 'Allocated' : 'Shipped'} {order.shippedAt && <small className="text-muted">({new Date(order.shippedAt).toLocaleString()})</small>}
+                                  </span>
+                                </div>
+                              )}
+                              {(order.status === OrderStatus.FULFILLED || order.fulfilledAt) && (
+                                <div className="d-flex align-items-center mb-2">
+                                  <div className="rounded-circle bg-success" style={{ width: '12px', height: '12px', marginRight: '10px' }} />
+                                  <span>
+                                    Fulfilled {order.fulfilledAt && <small className="text-muted">({new Date(order.fulfilledAt).toLocaleString()})</small>}
+                                  </span>
+                                </div>
+                              )}
+                              {order.status === OrderStatus.CANCELLED && (
+                                <div className="d-flex align-items-center mb-2">
+                                  <div className="rounded-circle bg-danger" style={{ width: '12px', height: '12px', marginRight: '10px' }} />
+                                  <span className="text-danger">
+                                    Cancelled {order.cancelledAt && <small className="text-muted">({new Date(order.cancelledAt).toLocaleString()})</small>}
+                                  </span>
+                                </div>
+                              )}
+                              {order.status === OrderStatus.RETURNED && (
+                                <div className="d-flex align-items-center mb-2">
+                                  <div className="rounded-circle bg-dark" style={{ width: '12px', height: '12px', marginRight: '10px' }} />
+                                  <span className="text-dark">
+                                    Returned
+                                  </span>
+                                </div>
+                              )}
+                            </div>
                           </div>
                         </Col>
                         <Col md={6}>
@@ -354,10 +511,28 @@ const OrderDetail: React.FC = () => {
                               <p>{new Date(order.confirmedAt).toLocaleString()}</p>
                             </div>
                           )}
+                          {order.allocatedAt && (
+                            <div className="mb-3">
+                              <Label className="form-label">Allocated At</Label>
+                              <p>{new Date(order.allocatedAt).toLocaleString()}</p>
+                            </div>
+                          )}
                           {order.shippedAt && (
                             <div className="mb-3">
                               <Label className="form-label">Shipped At</Label>
                               <p>{new Date(order.shippedAt).toLocaleString()}</p>
+                            </div>
+                          )}
+                          {order.fulfilledAt && (
+                            <div className="mb-3">
+                              <Label className="form-label">Fulfilled At</Label>
+                              <p>{new Date(order.fulfilledAt).toLocaleString()}</p>
+                            </div>
+                          )}
+                          {order.cancelledAt && (
+                            <div className="mb-3">
+                              <Label className="form-label">Cancelled At</Label>
+                              <p>{new Date(order.cancelledAt).toLocaleString()}</p>
                             </div>
                           )}
                         </Col>
@@ -407,8 +582,10 @@ const OrderDetail: React.FC = () => {
                             <tbody>
                               {activeReservations.map((res) => (
                                 <tr key={res.id}>
-                                  <td>{res.productVariantId}</td>
-                                  <td>{res.warehouseId}</td>
+                                  <td>
+                                    {res.inventoryItem?.productVariant?.product?.name || 'N/A'} - <code>{res.inventoryItem?.productVariant?.sku || res.productVariantId}</code>
+                                  </td>
+                                  <td>{res.inventoryItem?.warehouse?.name || res.warehouseId} {res.inventoryItem?.warehouse?.location && <small className="text-muted">({res.inventoryItem.warehouse.location})</small>}</td>
                                   <td>{res.quantity}</td>
                                   <td>{new Date(res.reservedAt).toLocaleString()}</td>
                                 </tr>
@@ -434,8 +611,10 @@ const OrderDetail: React.FC = () => {
                             <tbody>
                               {consumedReservations.map((res) => (
                                 <tr key={res.id}>
-                                  <td>{res.productVariantId}</td>
-                                  <td>{res.warehouseId}</td>
+                                  <td>
+                                    {res.inventoryItem?.productVariant?.product?.name || 'N/A'} - <code>{res.inventoryItem?.productVariant?.sku || res.productVariantId}</code>
+                                  </td>
+                                  <td>{res.inventoryItem?.warehouse?.name || res.warehouseId} {res.inventoryItem?.warehouse?.location && <small className="text-muted">({res.inventoryItem.warehouse.location})</small>}</td>
                                   <td>{res.quantity}</td>
                                   <td>{res.consumedAt ? new Date(res.consumedAt).toLocaleString() : 'N/A'}</td>
                                 </tr>
@@ -459,14 +638,146 @@ const OrderDetail: React.FC = () => {
                             <tbody>
                               {releasedReservations.map((res) => (
                                 <tr key={res.id}>
-                                  <td>{res.productVariantId}</td>
-                                  <td>{res.warehouseId}</td>
+                                  <td>
+                                    {res.inventoryItem?.productVariant?.product?.name || 'N/A'} - <code>{res.inventoryItem?.productVariant?.sku || res.productVariantId}</code>
+                                  </td>
+                                  <td>{res.inventoryItem?.warehouse?.name || res.warehouseId} {res.inventoryItem?.warehouse?.location && <small className="text-muted">({res.inventoryItem.warehouse.location})</small>}</td>
                                   <td>{res.quantity}</td>
                                   <td>{res.releasedAt ? new Date(res.releasedAt).toLocaleString() : 'N/A'}</td>
                                 </tr>
                               ))}
                             </tbody>
                           </Table>
+                        </div>
+                      )}
+                    </TabPane>
+
+                    <TabPane tabId="4">
+                      {loadingImpact ? (
+                        <div className="text-center py-4">
+                          <Spinner color="primary" />
+                          <p className="mt-2">Loading inventory impact...</p>
+                        </div>
+                      ) : inventoryImpact ? (
+                        <div>
+                          <Row className="mb-4">
+                            <Col md={4}>
+                              <Card className="border border-info">
+                                <CardBody>
+                                  <h6 className="text-muted mb-2">Active Reservations</h6>
+                                  <h3 className="mb-0 text-info">{inventoryImpact.reservations.active}</h3>
+                                  <small className="text-muted">Currently reserved</small>
+                                </CardBody>
+                              </Card>
+                            </Col>
+                            <Col md={4}>
+                              <Card className="border border-success">
+                                <CardBody>
+                                  <h6 className="text-muted mb-2">Consumed</h6>
+                                  <h3 className="mb-0 text-success">{inventoryImpact.reservations.consumed}</h3>
+                                  <small className="text-muted">Inventory deducted</small>
+                                </CardBody>
+                              </Card>
+                            </Col>
+                            <Col md={4}>
+                              <Card className="border border-warning">
+                                <CardBody>
+                                  <h6 className="text-muted mb-2">Released</h6>
+                                  <h3 className="mb-0 text-warning">{inventoryImpact.reservations.released}</h3>
+                                  <small className="text-muted">Returned to stock</small>
+                                </CardBody>
+                              </Card>
+                            </Col>
+                          </Row>
+
+                          <div className="mb-3">
+                            <h6>Inventory Impact by Product Variant & Warehouse</h6>
+                            {inventoryImpact.inventoryImpact.length > 0 ? (
+                              <div className="table-responsive">
+                                <Table className="table-nowrap align-middle mb-0">
+                                  <thead className="table-light">
+                                    <tr>
+                                      <th>Product Variant SKU</th>
+                                      <th>Warehouse</th>
+                                      <th className="text-end">Reserved</th>
+                                      <th className="text-end">Consumed</th>
+                                      <th className="text-end">Released</th>
+                                      <th className="text-end">Net Impact</th>
+                                    </tr>
+                                  </thead>
+                                  <tbody>
+                                    {inventoryImpact.inventoryImpact.map((impact, idx) => (
+                                      <tr key={idx}>
+                                        <td>
+                                          <code>{impact.productVariantSku}</code>
+                                        </td>
+                                        <td>{impact.warehouseName}</td>
+                                        <td className="text-end">
+                                          {impact.quantityReserved > 0 && (
+                                            <Badge color="info">{impact.quantityReserved}</Badge>
+                                          )}
+                                          {impact.quantityReserved === 0 && <span className="text-muted">-</span>}
+                                        </td>
+                                        <td className="text-end">
+                                          {impact.quantityConsumed > 0 && (
+                                            <Badge color="success">-{impact.quantityConsumed}</Badge>
+                                          )}
+                                          {impact.quantityConsumed === 0 && <span className="text-muted">-</span>}
+                                        </td>
+                                        <td className="text-end">
+                                          {impact.quantityReleased > 0 && (
+                                            <Badge color="warning">+{impact.quantityReleased}</Badge>
+                                          )}
+                                          {impact.quantityReleased === 0 && <span className="text-muted">-</span>}
+                                        </td>
+                                        <td className="text-end">
+                                          <strong className={impact.netImpact < 0 ? 'text-danger' : impact.netImpact > 0 ? 'text-success' : ''}>
+                                            {impact.netImpact < 0 ? impact.netImpact : impact.netImpact > 0 ? `+${impact.netImpact}` : 0}
+                                          </strong>
+                                        </td>
+                                      </tr>
+                                    ))}
+                                  </tbody>
+                                  <tfoot className="table-light">
+                                    <tr>
+                                      <th colSpan={2}>Total Net Impact</th>
+                                      <th className="text-end" colSpan={1}>
+                                        {inventoryImpact.inventoryImpact.reduce((sum, impact) => sum + impact.quantityReserved, 0)}
+                                      </th>
+                                      <th className="text-end" colSpan={1}>
+                                        {inventoryImpact.inventoryImpact.reduce((sum, impact) => sum + impact.quantityConsumed, 0)}
+                                      </th>
+                                      <th className="text-end" colSpan={1}>
+                                        {inventoryImpact.inventoryImpact.reduce((sum, impact) => sum + impact.quantityReleased, 0)}
+                                      </th>
+                                      <th className="text-end">
+                                        <strong className={
+                                          inventoryImpact.inventoryImpact.reduce((sum, impact) => sum + impact.netImpact, 0) < 0
+                                            ? 'text-danger'
+                                            : inventoryImpact.inventoryImpact.reduce((sum, impact) => sum + impact.netImpact, 0) > 0
+                                            ? 'text-success'
+                                            : ''
+                                        }>
+                                          {inventoryImpact.inventoryImpact.reduce((sum, impact) => sum + impact.netImpact, 0)}
+                                        </strong>
+                                      </th>
+                                    </tr>
+                                  </tfoot>
+                                </Table>
+                              </div>
+                            ) : (
+                              <div className="text-center py-4">
+                                <p className="text-muted">No inventory impact data available</p>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="text-center py-4">
+                          <p className="text-muted">Unable to load inventory impact data</p>
+                          <Button color="primary" size="sm" onClick={loadInventoryImpact}>
+                            Retry
+                          </Button>
                         </div>
                       )}
                     </TabPane>

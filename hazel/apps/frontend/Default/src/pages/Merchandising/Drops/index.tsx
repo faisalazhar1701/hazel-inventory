@@ -208,7 +208,6 @@ const Drops: React.FC = () => {
                           <tr>
                             <th scope="col">Name</th>
                             <th scope="col">Collection</th>
-                            <th scope="col">Brand</th>
                             <th scope="col">Release Date</th>
                             <th scope="col" className="text-end">Action</th>
                           </tr>
@@ -222,11 +221,6 @@ const Drops: React.FC = () => {
                               <td>
                                 <span className="text-muted">
                                   {drop.collection?.name || '-'}
-                                </span>
-                              </td>
-                              <td>
-                                <span className="text-muted">
-                                  {drop.collection?.brand?.name || '-'}
                                 </span>
                               </td>
                               <td>
@@ -325,7 +319,7 @@ const Drops: React.FC = () => {
                 <option value="">Select a collection</option>
                 {collections.map((collection) => (
                   <option key={collection.id} value={collection.id}>
-                    {collection.name} {collection.brand ? `(${collection.brand.name})` : ''}
+                    {collection.name} {collection.season ? `(${collection.season} ${collection.year || ''})`.trim() : ''}
                   </option>
                 ))}
               </Input>

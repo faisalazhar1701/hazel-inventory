@@ -7,6 +7,7 @@ export enum OrderStatus {
   SHIPPED = 'SHIPPED',
   DELIVERED = 'DELIVERED',
   COMPLETED = 'COMPLETED',
+  FULFILLED = 'FULFILLED',
   CANCELLED = 'CANCELLED',
   RETURNED = 'RETURNED',
 }
@@ -16,6 +17,7 @@ export enum OrderChannel {
   B2B = 'B2B',
   POS = 'POS',
   WHOLESALE = 'WHOLESALE',
+  RETAIL = 'RETAIL',
 }
 
 export interface OrderItem {
@@ -48,12 +50,28 @@ export interface InventoryReservation {
   reservedAt: string;
   consumedAt?: string;
   releasedAt?: string;
+  inventoryItem?: {
+    warehouse?: {
+      id: string;
+      name: string;
+      location: string;
+    };
+    productVariant?: {
+      id: string;
+      sku: string;
+      product?: {
+        id: string;
+        name: string;
+      };
+    };
+  };
 }
 
 export interface Order {
   id: string;
   orderNumber: string;
   channel: OrderChannel;
+  customerId?: string;
   status: OrderStatus;
   totalAmount: number;
   currency: string;
@@ -62,11 +80,40 @@ export interface Order {
   shippedAt?: string;
   deliveredAt?: string;
   completedAt?: string;
+  fulfilledAt?: string;
   cancelledAt?: string;
   createdAt: string;
   updatedAt: string;
+  customer?: {
+    id: string;
+    companyName: string;
+    type: string;
+    status: string;
+  };
   orderItems?: OrderItem[];
   inventoryReservations?: InventoryReservation[];
+}
+
+export interface InventoryImpact {
+  orderId: string;
+  orderNumber: string;
+  status: string;
+  totalItems: number;
+  reservations: {
+    active: number;
+    consumed: number;
+    released: number;
+  };
+  inventoryImpact: Array<{
+    productVariantId: string;
+    productVariantSku: string;
+    warehouseId: string;
+    warehouseName: string;
+    quantityReserved: number;
+    quantityConsumed: number;
+    quantityReleased: number;
+    netImpact: number;
+  }>;
 }
 
 export interface CreateOrderItemDto {
@@ -78,6 +125,7 @@ export interface CreateOrderItemDto {
 
 export interface CreateOrderDto {
   channel: OrderChannel;
+  customerId?: string;
   currency: string;
   items: CreateOrderItemDto[];
 }
@@ -123,6 +171,14 @@ class OrdersAPI {
 
   async shipOrder(id: string): Promise<Order> {
     return apiClient.patch<Order>(`${this.basePath}/${id}/ship`, {});
+  }
+
+  async fulfillOrder(id: string): Promise<Order> {
+    return apiClient.patch<Order>(`${this.basePath}/${id}/fulfill`, {});
+  }
+
+  async getInventoryImpact(id: string): Promise<InventoryImpact> {
+    return apiClient.get<InventoryImpact>(`${this.basePath}/${id}/inventory-impact`);
   }
 
   async returnOrder(id: string, data: ReturnOrderDto): Promise<Order> {

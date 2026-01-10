@@ -4,18 +4,45 @@ generator client {
 
 datasource db {
   provider = "sqlite"
-  url      = "file::memory:"
+  url      = env("DATABASE_URL")
 }
 
-model Brand {
-  id          String       @id @default(uuid())
-  name        String
-  description String?
-  createdAt   DateTime     @default(now())
-  collections Collection[]
-  products    Product[]
+model User {
+  id        String         @id @default(uuid())
+  email     String         @unique
+  role      String         // ADMIN, PRODUCT_MANAGER, PRODUCTION_MANAGER, WAREHOUSE_STAFF, SALES_REP, FINANCE, RETAIL_STAFF, CUSTOMER_USER
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
+  customerUsers CustomerUser[]
 
-  @@map("brands")
+  @@map("users")
+}
+
+model Customer {
+  id          String        @id @default(uuid())
+  type        String        // RETAIL, B2B, WHOLESALE
+  companyName String
+  status      String        @default("ACTIVE") // ACTIVE, INACTIVE, SUSPENDED
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+  orders      Order[]
+  customerUsers CustomerUser[]
+
+  @@map("customers")
+}
+
+model CustomerUser {
+  id         String   @id @default(uuid())
+  userId     String
+  customerId String
+  role       String   // ADMIN, MANAGER, VIEWER - role within the customer organization
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  customer   Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, customerId])
+  @@map("customer_users")
 }
 
 model Collection {
@@ -23,8 +50,6 @@ model Collection {
   name     String
   season   String?
   year     Int?
-  brandId  String?
-  brand    Brand?    @relation(fields: [brandId], references: [id], onDelete: SetNull)
   drops    Drop[]
   products Product[]
 
@@ -58,11 +83,9 @@ model Product {
   sku             String           @unique
   description     String?
   lifecycleStatus String           @default("DRAFT") // DRAFT, ACTIVE, DISCONTINUED
-  brandId         String?
   collectionId    String?
   createdAt       DateTime         @default(now())
   updatedAt       DateTime         @updatedAt
-  brand           Brand?           @relation(fields: [brandId], references: [id], onDelete: SetNull)
   collection      Collection?      @relation(fields: [collectionId], references: [id], onDelete: SetNull)
   style           Style?
   variants        ProductVariant[]
@@ -82,6 +105,8 @@ model ProductVariant {
   orderItems     OrderItem[]
   bomAsParent    BillOfMaterial[] @relation("ParentVariant")
   bomAsComponent BillOfMaterial[] @relation("ComponentVariant")
+  demandForecasts DemandForecast[]
+  replenishmentSuggestions ReplenishmentSuggestion[]
 
   @@map("product_variants")
 }
@@ -104,6 +129,7 @@ model Warehouse {
   location       String
   fulfillments   Fulfillment[]
   inventoryItems InventoryItem[]
+  replenishmentSuggestions ReplenishmentSuggestion[]
 
   @@map("warehouses")
 }
@@ -160,7 +186,8 @@ model Order {
   id                    String                 @id @default(uuid())
   orderNumber           String                 @unique
   channel               String
-  status                String // DRAFT, CONFIRMED, ALLOCATED, SHIPPED, DELIVERED, COMPLETED, CANCELLED, RETURNED
+  customerId            String?
+  status                String // DRAFT, CONFIRMED, ALLOCATED, SHIPPED, DELIVERED, COMPLETED, FULFILLED, CANCELLED, RETURNED
   totalAmount           Float
   currency              String
   confirmedAt           DateTime?
@@ -168,9 +195,11 @@ model Order {
   shippedAt             DateTime?
   deliveredAt           DateTime?
   completedAt           DateTime?
+  fulfilledAt           DateTime?
   cancelledAt           DateTime?
   createdAt             DateTime               @default(now())
   updatedAt             DateTime               @updatedAt
+  customer              Customer?              @relation(fields: [customerId], references: [id], onDelete: SetNull)
   fulfillments          Fulfillment[]
   orderItems            OrderItem[]
   inventoryReservations InventoryReservation[]
@@ -202,4 +231,37 @@ model Fulfillment {
   order       Order     @relation(fields: [orderId], references: [id], onDelete: Cascade)
 
   @@map("fulfillments")
+}
+
+model DemandForecast {
+  id                String        @id @default(uuid())
+  productVariantId  String
+  periodStart       DateTime
+  periodEnd         DateTime
+  forecastQuantity  Int
+  channel           String?       // Optional: DTC, B2B, POS, WHOLESALE, RETAIL
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+  productVariant    ProductVariant @relation(fields: [productVariantId], references: [id], onDelete: Cascade)
+
+  @@index([productVariantId])
+  @@index([periodStart, periodEnd])
+  @@map("demand_forecasts")
+}
+
+model ReplenishmentSuggestion {
+  id                 String        @id @default(uuid())
+  productVariantId   String
+  warehouseId        String
+  recommendedQuantity Int
+  recommendedDate    DateTime
+  reason             String        // LOW_STOCK, FORECAST_DEMAND, SEASONAL, etc.
+  createdAt          DateTime      @default(now())
+  updatedAt          DateTime      @updatedAt
+  productVariant     ProductVariant @relation(fields: [productVariantId], references: [id], onDelete: Cascade)
+  warehouse          Warehouse      @relation(fields: [warehouseId], references: [id], onDelete: Cascade)
+
+  @@index([productVariantId, warehouseId])
+  @@index([recommendedDate])
+  @@map("replenishment_suggestions")
 }

@@ -3,5 +3,6 @@ export enum OrderChannel {
   B2B = 'B2B',
   POS = 'POS',
   WHOLESALE = 'WHOLESALE',
+  RETAIL = 'RETAIL',
 }
 

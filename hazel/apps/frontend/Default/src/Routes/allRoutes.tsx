@@ -123,7 +123,6 @@ import ProductDetail from "../pages/Products/ProductDetail";
 import CreateProduct from "../pages/Products/CreateProduct";
 
 // Merchandising
-import Brands from "../pages/Merchandising/Brands";
 import Collections from "../pages/Merchandising/Collections";
 import Drops from "../pages/Merchandising/Drops";
 import Styles from "../pages/Merchandising/Styles";
@@ -137,6 +136,14 @@ import StockMovements from "../pages/Inventory/StockMovements";
 import OrderList from "../pages/Orders/OrderList";
 import CreateOrder from "../pages/Orders/CreateOrder";
 import OrderDetail from "../pages/Orders/OrderDetail";
+
+// Customers (CRM)
+import CustomerList from "../pages/Customers/CustomerList";
+import CustomerDetail from "../pages/Customers/CustomerDetail";
+
+// Forecasting
+import ForecastList from "../pages/Forecast/ForecastList";
+import ReplenishmentList from "../pages/Replenishment/ReplenishmentList";
 
 
 
@@ -152,7 +159,6 @@ const authProtectedRoutes = [
   { path: "/products/:id", component: <ProductDetail /> },
 
   // Merchandising
-  { path: "/merchandising/brands", component: <Brands /> },
   { path: "/merchandising/collections", component: <Collections /> },
   { path: "/merchandising/drops", component: <Drops /> },
   { path: "/merchandising/styles", component: <Styles /> },
@@ -166,6 +172,14 @@ const authProtectedRoutes = [
   { path: "/orders", component: <OrderList /> },
   { path: "/orders/create", component: <CreateOrder /> },
   { path: "/orders/:id", component: <OrderDetail /> },
+
+  // Customers (CRM)
+  { path: "/customers", component: <CustomerList /> },
+  { path: "/customers/:id", component: <CustomerDetail /> },
+
+  // Forecasting
+  { path: "/forecast", component: <ForecastList /> },
+  { path: "/replenishment", component: <ReplenishmentList /> },
 
   // Demo routes removed - not part of B1-B4
 

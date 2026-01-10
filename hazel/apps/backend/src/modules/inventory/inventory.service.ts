@@ -314,6 +314,17 @@ export class InventoryService {
   }
 
   async getInventoryByProductVariant(productVariantId: string) {
+    // Defensive: Verify product variant exists (optional check - findMany will return [] if variant doesn't exist)
+    const variant = await this.prisma.productVariant.findUnique({
+      where: { id: productVariantId },
+      select: { id: true }, // Minimal select for existence check
+    });
+    
+    // If variant doesn't exist, return empty array (not an error - just no inventory for that variant)
+    if (!variant) {
+      return [];
+    }
+
     const inventoryItems = await this.prisma.inventoryItem.findMany({
       where: {
         productVariantId,
@@ -341,6 +352,7 @@ export class InventoryService {
           },
         },
       },
+      // Order by warehouse name (required relation, safe for SQLite)
       orderBy: {
         warehouse: {
           name: 'asc',
@@ -352,6 +364,20 @@ export class InventoryService {
   }
 
   async getInventoryByWarehouse(warehouseId: string) {
+    // Defensive: Verify warehouse exists (optional check - findMany will return [] if warehouse doesn't exist)
+    // This check is for better error messages, but findMany handles missing warehouse gracefully
+    const warehouse = await this.prisma.warehouse.findUnique({
+      where: { id: warehouseId },
+      select: { id: true }, // Minimal select for existence check
+    });
+    
+    // If warehouse doesn't exist, return empty array (not an error - just no inventory for that warehouse)
+    if (!warehouse) {
+      return [];
+    }
+
+    // Fetch inventory items with relations
+    // Note: Using simple orderBy on productVariant.sku to avoid nested relation ordering issues in SQLite
     const inventoryItems = await this.prisma.inventoryItem.findMany({
       where: {
         warehouseId,
@@ -379,16 +405,23 @@ export class InventoryService {
           },
         },
       },
+      // Order by warehouse name (always available) instead of nested product.name
+      // In-memory sorting by product name can be done if needed, but avoids SQLite nested ordering issues
       orderBy: {
         productVariant: {
-          product: {
-            name: 'asc',
-          },
+          sku: 'asc', // Order by SKU instead of nested product.name for SQLite compatibility
         },
       },
     });
 
-    return inventoryItems;
+    // Sort by product name in memory for better UX (safer than nested SQL orderBy in SQLite)
+    // Defensive: Handle cases where relations might be missing (shouldn't happen with FK constraints, but safety first)
+    return inventoryItems.sort((a, b) => {
+      // Both productVariant and product are required relations, but defensive null checks ensure no crashes
+      const productNameA = a.productVariant?.product?.name || a.productVariant?.sku || '';
+      const productNameB = b.productVariant?.product?.name || b.productVariant?.sku || '';
+      return productNameA.localeCompare(productNameB);
+    });
   }
 
   async getStockMovements(productVariantId?: string, warehouseId?: string) {

@@ -13,12 +13,6 @@ export interface Collection {
   name: string;
   season?: string;
   year?: number;
-  brand?: Brand;
-}
-
-export interface Brand {
-  id: string;
-  name: string;
 }
 
 export interface CreateDropDto {

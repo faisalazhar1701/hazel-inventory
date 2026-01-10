@@ -49,6 +49,10 @@ export class CreateOrderDto {
   channel: OrderChannelEnum;
 
   @IsString()
+  @IsOptional()
+  customerId?: string;
+
+  @IsString()
   @IsNotEmpty()
   currency: string;
 
@@ -122,7 +126,7 @@ export class OrdersService {
   }
 
   private validateChannel(channel: OrderChannelEnum): void {
-    const validChannels = ['DTC', 'B2B', 'POS', 'WHOLESALE'];
+    const validChannels = ['DTC', 'B2B', 'POS', 'WHOLESALE', 'RETAIL'];
     if (!validChannels.includes(channel)) {
       this.logger.error(`Invalid channel provided: ${channel}`);
       throw new BadRequestException(
@@ -132,8 +136,81 @@ export class OrdersService {
     this.logger.debug(`Channel validated: ${channel}`);
   }
 
+  /**
+   * Validates order status transitions according to lifecycle rules:
+   * DRAFT -> CONFIRMED -> FULFILLED
+   * DRAFT -> CANCELLED (at any time)
+   * FULFILLED -> RETURNED (after fulfillment)
+   * Any status -> CANCELLED (except FULFILLED, RETURNED, CANCELLED)
+   */
+  private validateStatusTransition(currentStatus: OrderStatus, newStatus: OrderStatus): void {
+    const validTransitions: Record<OrderStatus, OrderStatus[]> = {
+      [OrderStatus.DRAFT]: [OrderStatus.CONFIRMED, OrderStatus.CANCELLED],
+      [OrderStatus.CONFIRMED]: [OrderStatus.FULFILLED, OrderStatus.CANCELLED, OrderStatus.ALLOCATED],
+      [OrderStatus.ALLOCATED]: [OrderStatus.FULFILLED, OrderStatus.CANCELLED],
+      [OrderStatus.SHIPPED]: [OrderStatus.FULFILLED, OrderStatus.RETURNED],
+      [OrderStatus.DELIVERED]: [OrderStatus.FULFILLED, OrderStatus.RETURNED],
+      [OrderStatus.COMPLETED]: [OrderStatus.FULFILLED, OrderStatus.RETURNED],
+      [OrderStatus.FULFILLED]: [OrderStatus.RETURNED],
+      [OrderStatus.CANCELLED]: [], // Terminal state
+      [OrderStatus.RETURNED]: [], // Terminal state
+    };
+
+    const allowedTransitions = validTransitions[currentStatus] || [];
+    if (!allowedTransitions.includes(newStatus)) {
+      this.logger.warn(
+        `Invalid status transition attempted: ${currentStatus} -> ${newStatus}`,
+      );
+      throw new BadRequestException(
+        `Cannot transition order from ${currentStatus} to ${newStatus}. Valid transitions from ${currentStatus} are: ${allowedTransitions.join(', ') || 'none (terminal state)'}`,
+      );
+    }
+    this.logger.debug(`Status transition validated: ${currentStatus} -> ${newStatus}`);
+  }
+
   async createOrder(data: CreateOrderDto): Promise<Order & { orderItems: OrderItem[] }> {
     this.validateChannel(data.channel);
+
+    // Enforce business rules: B2B/WHOLESALE orders must have customer, DTC orders may not
+    const requiresCustomer = data.channel === OrderChannelEnum.B2B || data.channel === OrderChannelEnum.WHOLESALE;
+    const allowsCustomer = data.channel === OrderChannelEnum.DTC || data.channel === OrderChannelEnum.RETAIL || data.channel === OrderChannelEnum.POS;
+
+    if (requiresCustomer && !data.customerId) {
+      throw new BadRequestException(
+        `Orders with channel ${data.channel} must have a customer. Please provide a customerId.`,
+      );
+    }
+
+    // Validate customer exists if provided
+    if (data.customerId) {
+      const customer = await this.prisma.customer.findUnique({
+        where: { id: data.customerId },
+      });
+
+      if (!customer) {
+        throw new NotFoundException(`Customer with ID ${data.customerId} not found`);
+      }
+
+      // Validate customer status is ACTIVE
+      if (customer.status !== 'ACTIVE') {
+        throw new BadRequestException(
+          `Cannot create order for customer ${customer.companyName}. Customer status is ${customer.status}.`,
+        );
+      }
+
+      // For B2B/WHOLESALE, validate customer type matches channel
+      if (data.channel === OrderChannelEnum.B2B && customer.type !== 'B2B') {
+        throw new BadRequestException(
+          `Customer ${customer.companyName} has type ${customer.type}, but order channel is B2B. Customer type must match channel.`,
+        );
+      }
+
+      if (data.channel === OrderChannelEnum.WHOLESALE && customer.type !== 'WHOLESALE') {
+        throw new BadRequestException(
+          `Customer ${customer.companyName} has type ${customer.type}, but order channel is WHOLESALE. Customer type must match channel.`,
+        );
+      }
+    }
 
     // Validate all product variants exist
     const variantIds = data.items.map((item) => item.productVariantId);
@@ -174,6 +251,7 @@ export class OrdersService {
         data: {
           orderNumber,
           channel: data.channel as OrderChannel,
+          customerId: data.customerId || null,
           status: OrderStatus.DRAFT,
           totalAmount,
           currency: data.currency,
@@ -211,27 +289,40 @@ export class OrdersService {
     return order;
   }
 
-  async listOrders(): Promise<Order[]> {
+  /**
+   * List orders with optional customer filtering for role-based access
+   * @param customerId - Optional customer ID to filter orders. If provided, only returns orders for that customer.
+   */
+  async listOrders(customerId?: string): Promise<Order[]> {
+    const where = customerId ? { customerId } : {};
+    
     return this.prisma.order.findMany({
+      where,
       orderBy: {
         createdAt: 'desc',
+      },
+      include: {
+        customer: {
+          select: {
+            id: true,
+            companyName: true,
+            type: true,
+          },
+        },
       },
     });
   }
 
-  async getOrderById(id: string): Promise<Order & { 
-    orderItems: (OrderItem & { productVariant: ProductVariant })[];
-    inventoryReservations: any[];
-  }> {
+  /**
+   * Get order by ID with optional customer user access check
+   * @param id - Order ID
+   * @param userId - Optional user ID to verify access. If provided, only returns order if user has access to the customer.
+   */
+  async getOrderById(id: string, userId?: string) {
     const order = await this.prisma.order.findUnique({
       where: { id },
       include: {
-        orderItems: {
-          include: {
-            productVariant: true,
-          },
-        },
-        inventoryReservations: true,
+        customer: true,
       },
     });
 
@@ -239,7 +330,82 @@ export class OrdersService {
       throw new NotFoundException(`Order with ID ${id} not found`);
     }
 
-    return order;
+    // If userId is provided and order has a customer, verify user has access to that customer
+    if (userId && order.customerId) {
+      const customerUser = await this.prisma.customerUser.findUnique({
+        where: {
+          userId_customerId: {
+            userId: userId,
+            customerId: order.customerId,
+          },
+        },
+      });
+
+      if (!customerUser) {
+        throw new NotFoundException(
+          `Order with ID ${id} not found or you do not have access to it`,
+        );
+      }
+    }
+
+    // Re-fetch with full includes
+    const fullOrder = await this.prisma.order.findUnique({
+      where: { id },
+      include: {
+        customer: {
+          select: {
+            id: true,
+            companyName: true,
+            type: true,
+            status: true,
+          },
+        },
+        orderItems: {
+          include: {
+            productVariant: {
+              include: {
+                product: {
+                  select: {
+                    id: true,
+                    name: true,
+                    sku: true,
+                  },
+                },
+              },
+            },
+          },
+        },
+        inventoryReservations: {
+          include: {
+            inventoryItem: {
+              include: {
+                warehouse: {
+                  select: {
+                    id: true,
+                    name: true,
+                    location: true,
+                  },
+                },
+                productVariant: {
+                  select: {
+                    id: true,
+                    sku: true,
+                    product: {
+                      select: {
+                        id: true,
+                        name: true,
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    });
+
+    return fullOrder;
   }
 
   async confirmOrder(id: string): Promise<Order> {
@@ -262,14 +428,8 @@ export class OrdersService {
         throw new NotFoundException(`Order with ID ${id} not found`);
       }
 
-      if (order.status !== OrderStatus.DRAFT) {
-        this.logger.warn(
-          `Cannot confirm order ${order.orderNumber}: Invalid status ${order.status}`,
-        );
-        throw new BadRequestException(
-          `Cannot confirm order with status ${order.status}. Only DRAFT orders can be confirmed.`,
-        );
-      }
+      // Validate status transition
+      this.validateStatusTransition(order.status as OrderStatus, OrderStatus.CONFIRMED);
 
       // Check available inventory and create reservations
       const reservations: { orderItemId: string; inventoryItemId: string; productVariantId: string; warehouseId: string; quantity: number }[] = [];
@@ -354,20 +514,30 @@ export class OrdersService {
         ),
       );
 
-      // Update order status - Note: timestamp fields may need to be added manually if not in schema
-      const newStatus = allReserved ? OrderStatus.ALLOCATED : OrderStatus.CONFIRMED;
+      // Update order status - Always transition to CONFIRMED first (validated above)
+      // If all items are reserved, can optionally set to ALLOCATED (backward compatibility)
+      // But the lifecycle is: DRAFT -> CONFIRMED -> (ALLOCATED) -> FULFILLED
+      let newStatus = OrderStatus.CONFIRMED;
+      
+      // Optionally set to ALLOCATED if all items reserved (for backward compatibility)
+      if (allReserved) {
+        // Validate transition from CONFIRMED to ALLOCATED is allowed
+        this.validateStatusTransition(OrderStatus.CONFIRMED, OrderStatus.ALLOCATED);
+        newStatus = OrderStatus.ALLOCATED;
+      }
+      
       const updateData: any = {
         status: newStatus,
+        confirmedAt: new Date(),
       };
       
-      // Only update timestamp fields if they exist in the schema
-      try {
-        updateData.confirmedAt = new Date();
-        if (allReserved) {
+      // Only update allocatedAt timestamp if set to ALLOCATED
+      if (allReserved) {
+        try {
           updateData.allocatedAt = new Date();
+        } catch (e) {
+          // Timestamp field not available, skip
         }
-      } catch (e) {
-        // Timestamp fields not available, skip
       }
       
       const updatedOrder = await tx.order.update({
@@ -396,13 +566,12 @@ export class OrdersService {
         throw new NotFoundException(`Order with ID ${id} not found`);
       }
 
-      if (order.status === OrderStatus.CANCELLED) {
-        throw new BadRequestException('Order is already cancelled');
+      // Validate status transition - allow cancellation from any non-terminal state except FULFILLED and RETURNED
+      if (order.status === OrderStatus.FULFILLED || order.status === OrderStatus.RETURNED) {
+        throw new BadRequestException(`Cannot cancel order with status ${order.status}. Order is already fulfilled or returned.`);
       }
-
-      if ([OrderStatus.SHIPPED, OrderStatus.DELIVERED, OrderStatus.COMPLETED].includes(order.status as OrderStatus)) {
-        throw new BadRequestException(`Cannot cancel order with status ${order.status}`);
-      }
+      
+      this.validateStatusTransition(order.status as OrderStatus, OrderStatus.CANCELLED);
 
       // Release all active reservations
       const activeReservations = await tx.inventoryReservation.findMany({
@@ -469,6 +638,7 @@ export class OrdersService {
         throw new NotFoundException(`Order with ID ${id} not found`);
       }
 
+      // Validate status transition - ship order from CONFIRMED or ALLOCATED status
       if (![OrderStatus.CONFIRMED, OrderStatus.ALLOCATED].includes(order.status as OrderStatus)) {
         throw new BadRequestException(
           `Cannot ship order with status ${order.status}. Order must be CONFIRMED or ALLOCATED.`,
@@ -553,6 +723,201 @@ export class OrdersService {
     });
   }
 
+  /**
+   * Fulfill an order - marks it as fulfilled after inventory has been consumed.
+   * Order must be in CONFIRMED, ALLOCATED, SHIPPED, DELIVERED, or COMPLETED status.
+   * All inventory reservations should already be consumed (via shipOrder).
+   */
+  async fulfillOrder(id: string): Promise<Order> {
+    this.logger.log(`Fulfilling order: ${id}`);
+
+    return this.prisma.$transaction(async (tx) => {
+      const order = await tx.order.findUnique({
+        where: { id },
+        include: {
+          inventoryReservations: {
+            where: {
+              consumedAt: null,
+              releasedAt: null,
+            },
+          },
+        },
+      });
+
+      if (!order) {
+        this.logger.error(`Order not found for fulfillment: ${id}`);
+        throw new NotFoundException(`Order with ID ${id} not found`);
+      }
+
+      // Validate status - can fulfill from CONFIRMED/ALLOCATED/SHIPPED/DELIVERED/COMPLETED
+      const fulfillableStatuses = [
+        OrderStatus.CONFIRMED,
+        OrderStatus.ALLOCATED,
+        OrderStatus.SHIPPED,
+        OrderStatus.DELIVERED,
+        OrderStatus.COMPLETED,
+      ];
+
+      if (!fulfillableStatuses.includes(order.status as OrderStatus)) {
+        throw new BadRequestException(
+          `Cannot fulfill order with status ${order.status}. Order must be in CONFIRMED, ALLOCATED, SHIPPED, DELIVERED, or COMPLETED status.`,
+        );
+      }
+
+      // Check if there are any active reservations that need to be consumed first
+      if (order.inventoryReservations.length > 0) {
+        this.logger.warn(
+          `Order ${order.orderNumber} has ${order.inventoryReservations.length} active reservations. These should be consumed via shipOrder before fulfilling.`,
+        );
+        // Don't throw error - allow fulfillment if reservations exist but warn
+      }
+
+      // Validate status transition
+      this.validateStatusTransition(order.status as OrderStatus, OrderStatus.FULFILLED);
+
+      // Update order status to FULFILLED
+      const updateData: any = {
+        status: OrderStatus.FULFILLED,
+      };
+      
+      try {
+        updateData.fulfilledAt = new Date();
+      } catch (e) {
+        // Timestamp field not available, skip
+      }
+      
+      const updatedOrder = await tx.order.update({
+        where: { id },
+        data: updateData,
+      });
+
+      this.logger.log(`Order ${order.orderNumber} fulfilled. Status: FULFILLED`);
+      return updatedOrder;
+    });
+  }
+
+  /**
+   * Get inventory impact for an order - shows how much inventory is reserved/consumed
+   */
+  async getInventoryImpact(id: string): Promise<{
+    orderId: string;
+    orderNumber: string;
+    status: string;
+    totalItems: number;
+    reservations: {
+      active: number;
+      consumed: number;
+      released: number;
+    };
+    inventoryImpact: Array<{
+      productVariantId: string;
+      productVariantSku: string;
+      warehouseId: string;
+      warehouseName: string;
+      quantityReserved: number;
+      quantityConsumed: number;
+      quantityReleased: number;
+      netImpact: number;
+    }>;
+  }> {
+    const order = await this.prisma.order.findUnique({
+      where: { id },
+      include: {
+        orderItems: {
+          include: {
+            productVariant: true,
+          },
+        },
+        inventoryReservations: {
+          include: {
+            inventoryItem: {
+              include: {
+                warehouse: true,
+              },
+            },
+          },
+        },
+      },
+    });
+
+    if (!order) {
+      throw new NotFoundException(`Order with ID ${id} not found`);
+    }
+
+    const inventoryImpactMap = new Map<
+      string,
+      {
+        productVariantId: string;
+        productVariantSku: string;
+        warehouseId: string;
+        warehouseName: string;
+        quantityReserved: number;
+        quantityConsumed: number;
+        quantityReleased: number;
+      }
+    >();
+
+    // Get order item map for SKU lookup
+    const orderItemMap = new Map(
+      order.orderItems.map((item) => [item.id, item]),
+    );
+
+    // Aggregate inventory impact by product variant and warehouse
+    for (const reservation of order.inventoryReservations) {
+      const orderItem = orderItemMap.get(reservation.orderItemId);
+      const key = `${reservation.productVariantId}-${reservation.warehouseId}`;
+      const existing = inventoryImpactMap.get(key);
+
+      const impact = existing || {
+        productVariantId: reservation.productVariantId,
+        productVariantSku: orderItem?.productVariant?.sku || 'Unknown',
+        warehouseId: reservation.warehouseId,
+        warehouseName: reservation.inventoryItem?.warehouse?.name || 'Unknown',
+        quantityReserved: 0,
+        quantityConsumed: 0,
+        quantityReleased: 0,
+      };
+
+      if (reservation.consumedAt) {
+        impact.quantityConsumed += reservation.quantity;
+      } else if (reservation.releasedAt) {
+        impact.quantityReleased += reservation.quantity;
+      } else {
+        impact.quantityReserved += reservation.quantity;
+      }
+
+      inventoryImpactMap.set(key, impact);
+    }
+
+    const inventoryImpact = Array.from(inventoryImpactMap.values()).map((impact) => ({
+      ...impact,
+      netImpact: impact.quantityConsumed - impact.quantityReleased, // Net inventory removed
+    }));
+
+    const activeReservations = order.inventoryReservations.filter(
+      (r) => !r.consumedAt && !r.releasedAt,
+    ).length;
+    const consumedReservations = order.inventoryReservations.filter(
+      (r) => r.consumedAt !== null,
+    ).length;
+    const releasedReservations = order.inventoryReservations.filter(
+      (r) => r.releasedAt !== null,
+    ).length;
+
+    return {
+      orderId: order.id,
+      orderNumber: order.orderNumber,
+      status: order.status,
+      totalItems: order.orderItems.length,
+      reservations: {
+        active: activeReservations,
+        consumed: consumedReservations,
+        released: releasedReservations,
+      },
+      inventoryImpact,
+    };
+  }
+
   async returnOrder(id: string, returnData: ReturnOrderDto): Promise<Order> {
     this.logger.log(`Processing return for order: ${id}`);
 
@@ -571,11 +936,14 @@ export class OrdersService {
       throw new NotFoundException(`Order with ID ${id} not found`);
     }
 
-    if (![OrderStatus.SHIPPED, OrderStatus.DELIVERED, OrderStatus.COMPLETED].includes(order.status as OrderStatus)) {
+    // Validate return - can return from FULFILLED or legacy shipped/delivered/completed statuses
+    if (![OrderStatus.FULFILLED, OrderStatus.SHIPPED, OrderStatus.DELIVERED, OrderStatus.COMPLETED].includes(order.status as OrderStatus)) {
       throw new BadRequestException(
-        `Cannot return order with status ${order.status}. Order must be SHIPPED, DELIVERED, or COMPLETED.`,
+        `Cannot return order with status ${order.status}. Order must be FULFILLED, SHIPPED, DELIVERED, or COMPLETED.`,
       );
     }
+    
+    this.validateStatusTransition(order.status as OrderStatus, OrderStatus.RETURNED);
 
     // Validate return items
     const orderItemMap = new Map(
