@@ -46,6 +46,12 @@ export class OrdersController {
     return this.ordersService.cancelOrder(id);
   }
 
+  @Patch(':id/ship')
+  @HttpCode(HttpStatus.OK)
+  async shipOrder(@Param('id') id: string) {
+    return this.ordersService.shipOrder(id);
+  }
+
   @Patch(':id/return')
   @HttpCode(HttpStatus.OK)
   async returnOrder(

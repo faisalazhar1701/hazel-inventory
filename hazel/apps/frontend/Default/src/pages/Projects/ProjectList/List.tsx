@@ -10,11 +10,9 @@ import { useSelector, useDispatch } from 'react-redux';
 //Import Icons
 import FeatherIcon from "feather-icons-react";
 
-//import action
-import {
-    getProjectList as onGetProjectList,
-    deleteProjectList as onDeleteProjectList,
-} from "../../../slices/thunks";
+// Demo thunks removed - using empty functions
+const onGetProjectList = (data?: any) => Promise.resolve([]);
+const onDeleteProjectList = (data?: any) => Promise.resolve();
 import { createSelector } from 'reselect';
 
 const List = () => {

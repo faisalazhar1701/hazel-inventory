@@ -3,7 +3,8 @@ import { Card, CardBody, CardHeader, Col, Row } from "reactstrap";
 import { RevenueCharts } from "./DashboardEcommerceCharts";
 import CountUp from "react-countup";
 import { useSelector, useDispatch } from "react-redux";
-import { getRevenueChartsData } from "../../slices/thunks";
+// Demo thunk removed - using empty function
+const getRevenueChartsData = (data?: any) => Promise.resolve([]);
 import { createSelector } from "reselect";
 
 const Revenue = () => {

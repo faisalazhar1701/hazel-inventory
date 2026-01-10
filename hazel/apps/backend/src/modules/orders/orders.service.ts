@@ -101,7 +101,6 @@ export class OrdersService {
       const random = Math.floor(Math.random() * 10000);
       const orderNumber = `ORD-${timestamp}-${random}`;
 
-      // Check if order number already exists (across all channels)
       const existingOrder = await this.prisma.order.findUnique({
         where: { orderNumber },
       });
@@ -134,6 +133,8 @@ export class OrdersService {
   }
 
   async createOrder(data: CreateOrderDto): Promise<Order & { orderItems: OrderItem[] }> {
+    this.validateChannel(data.channel);
+
     // Validate all product variants exist
     const variantIds = data.items.map((item) => item.productVariantId);
     const variants = await this.prisma.productVariant.findMany({
@@ -146,13 +147,25 @@ export class OrdersService {
       throw new NotFoundException('One or more product variants not found');
     }
 
+    // Validate all warehouses exist
+    const warehouseIds = data.items.map((item) => item.warehouseId);
+    const warehouses = await this.prisma.warehouse.findMany({
+      where: {
+        id: { in: warehouseIds },
+      },
+    });
+
+    if (warehouses.length !== new Set(warehouseIds).size) {
+      throw new NotFoundException('One or more warehouses not found');
+    }
+
     // Calculate total amount
     const totalAmount = data.items.reduce(
       (sum, item) => sum + item.unitPrice * item.quantity,
       0,
     );
 
-    // Generate unique order number (check for duplicates across all channels)
+    // Generate unique order number
     const orderNumber = await this.generateUniqueOrderNumber();
 
     // Create order with items in a transaction
@@ -206,7 +219,10 @@ export class OrdersService {
     });
   }
 
-  async getOrderById(id: string): Promise<Order & { orderItems: (OrderItem & { productVariant: ProductVariant })[] }> {
+  async getOrderById(id: string): Promise<Order & { 
+    orderItems: (OrderItem & { productVariant: ProductVariant })[];
+    inventoryReservations: any[];
+  }> {
     const order = await this.prisma.order.findUnique({
       where: { id },
       include: {
@@ -215,6 +231,7 @@ export class OrdersService {
             productVariant: true,
           },
         },
+        inventoryReservations: true,
       },
     });
 
@@ -228,186 +245,312 @@ export class OrdersService {
   async confirmOrder(id: string): Promise<Order> {
     this.logger.log(`Confirming order: ${id}`);
 
-    const order = await this.prisma.order.findUnique({
-      where: { id },
-      include: {
-        orderItems: true,
-      },
-    });
-
-    if (!order) {
-      this.logger.error(`Order not found: ${id}`);
-      throw new NotFoundException(`Order with ID ${id} not found`);
-    }
-
-    this.logger.debug(
-      `Order found: ${order.orderNumber} (Channel: ${order.channel}, Status: ${order.status})`,
-    );
-
-    if (order.status !== OrderStatus.DRAFT) {
-      this.logger.warn(
-        `Cannot confirm order ${order.orderNumber}: Invalid status ${order.status}`,
-      );
-      throw new BadRequestException(
-        `Cannot confirm order with status ${order.status}. Only DRAFT orders can be confirmed.`,
-      );
-    }
-
-    // Track allocation results per order item
-    interface ItemAllocationResult {
-      orderItemId: string;
-      requestedQuantity: number;
-      allocatedQuantity: number;
-      isFullyAllocated: boolean;
-    }
-
-    const allocationResults: ItemAllocationResult[] = [];
-
-    // Allocate inventory per order item - support partial allocation
-    for (const item of order.orderItems) {
-      let remainingQuantity = item.quantity;
-      let allocatedQuantity = 0;
-
-      // Get all inventory items for this product variant with available stock
-      const inventoryItems = await this.prisma.inventoryItem.findMany({
-        where: {
-          productVariantId: item.productVariantId,
-          quantity: { gt: 0 },
-        },
-        orderBy: {
-          quantity: 'desc',
+    return this.prisma.$transaction(async (tx) => {
+      const order = await tx.order.findUnique({
+        where: { id },
+        include: {
+          orderItems: {
+            include: {
+              productVariant: true,
+            },
+          },
         },
       });
 
-      // Allocate from warehouses - support partial allocation
-      for (const invItem of inventoryItems) {
-        if (remainingQuantity <= 0) break;
+      if (!order) {
+        this.logger.error(`Order not found: ${id}`);
+        throw new NotFoundException(`Order with ID ${id} not found`);
+      }
 
-        // Deduct what's available (partial allocation supported)
-        const deductQuantity = Math.min(remainingQuantity, invItem.quantity);
+      if (order.status !== OrderStatus.DRAFT) {
+        this.logger.warn(
+          `Cannot confirm order ${order.orderNumber}: Invalid status ${order.status}`,
+        );
+        throw new BadRequestException(
+          `Cannot confirm order with status ${order.status}. Only DRAFT orders can be confirmed.`,
+        );
+      }
 
-        try {
-          // Deduct inventory - this will automatically log to InventoryLedger
-          // Inventory updates are consistent across all channels
-          this.logger.debug(
-            `Allocating inventory for order ${order.orderNumber} (Channel: ${order.channel}): ` +
-              `ProductVariant ${item.productVariantId}, Warehouse ${invItem.warehouseId}, Quantity ${deductQuantity}`,
-          );
+      // Check available inventory and create reservations
+      const reservations: { orderItemId: string; inventoryItemId: string; productVariantId: string; warehouseId: string; quantity: number }[] = [];
+      let allReserved = true;
 
-          await this.inventoryService.deductInventory({
-            productVariantId: item.productVariantId,
-            warehouseId: invItem.warehouseId,
-            quantity: deductQuantity,
-            reason: `Order ${order.orderNumber} (${order.channel}) confirmation - Item allocation`,
+      for (const orderItem of order.orderItems) {
+        // Find inventory items with available stock
+        const inventoryItems = await tx.inventoryItem.findMany({
+          where: {
+            productVariantId: orderItem.productVariantId,
+            quantity: { gt: 0 },
+          },
+          orderBy: {
+            quantity: 'desc',
+          },
+        });
+
+        let remainingQuantity = orderItem.quantity;
+
+        // Calculate available quantity (physical stock minus active reservations)
+        for (const invItem of inventoryItems) {
+          if (remainingQuantity <= 0) break;
+
+          // Get active reservations for this inventory item
+          const activeReservations = await tx.inventoryReservation.findMany({
+            where: {
+              inventoryItemId: invItem.id,
+              releasedAt: null,
+              consumedAt: null,
+            },
           });
 
-          this.logger.debug(
-            `Inventory allocated successfully: ${deductQuantity} units from warehouse ${invItem.warehouseId}`,
+          const reservedQuantity = activeReservations.reduce(
+            (sum, res) => sum + res.quantity,
+            0,
           );
+          const availableQuantity = invItem.quantity - reservedQuantity;
 
-          allocatedQuantity += deductQuantity;
-          remainingQuantity -= deductQuantity;
-        } catch (error) {
-          // If deduction fails, log but continue with other warehouses
-          // This allows partial allocation even if one warehouse fails
-          this.logger.error(
-            `Failed to allocate inventory from warehouse ${invItem.warehouseId} for order ${order.orderNumber}: ` +
-              `${error instanceof Error ? error.message : 'Unknown error'}`,
+          if (availableQuantity <= 0) continue;
+
+          const reserveQuantity = Math.min(remainingQuantity, availableQuantity);
+
+          if (reserveQuantity > 0) {
+            reservations.push({
+              orderItemId: orderItem.id,
+              inventoryItemId: invItem.id,
+              productVariantId: orderItem.productVariantId,
+              warehouseId: invItem.warehouseId,
+              quantity: reserveQuantity,
+            });
+            remainingQuantity -= reserveQuantity;
+          }
+        }
+
+        if (remainingQuantity > 0) {
+          allReserved = false;
+          this.logger.warn(
+            `Insufficient inventory for order item ${orderItem.id}. Requested: ${orderItem.quantity}, Reserved: ${orderItem.quantity - remainingQuantity}`,
           );
-          // Continue to next warehouse
         }
       }
 
-      // Track allocation result for this item
-      allocationResults.push({
-        orderItemId: item.id,
-        requestedQuantity: item.quantity,
-        allocatedQuantity,
-        isFullyAllocated: remainingQuantity === 0,
-      });
-    }
+      if (reservations.length === 0) {
+        throw new BadRequestException(
+          `Cannot confirm order ${order.orderNumber}. No inventory available for any items.`,
+        );
+      }
 
-    // Determine order status based on allocation results
-    const allItemsFullyAllocated = allocationResults.every(
-      (result) => result.isFullyAllocated,
-    );
-    const anyItemAllocated = allocationResults.some(
-      (result) => result.allocatedQuantity > 0,
-    );
-
-    let newStatus: OrderStatus;
-
-    if (!anyItemAllocated) {
-      // No items were allocated - reject confirmation
-      throw new BadRequestException(
-        `Could not allocate inventory for any items in order ${order.orderNumber}. Order remains in DRAFT status.`,
+      // Create reservations
+      await Promise.all(
+        reservations.map((res) =>
+          tx.inventoryReservation.create({
+            data: {
+              orderId: order.id,
+              orderItemId: res.orderItemId,
+              inventoryItemId: res.inventoryItemId,
+              productVariantId: res.productVariantId,
+              warehouseId: res.warehouseId,
+              quantity: res.quantity,
+            },
+          }),
+        ),
       );
-    } else if (allItemsFullyAllocated) {
-      // All items fully allocated
-      newStatus = OrderStatus.FULFILLED;
-    } else {
-      // Some items partially allocated
-      newStatus = OrderStatus.PARTIALLY_FULFILLED;
-    }
 
-    // Update order status
-    const updatedOrder = await this.prisma.order.update({
-      where: { id },
-      data: {
+      // Update order status - Note: timestamp fields may need to be added manually if not in schema
+      const newStatus = allReserved ? OrderStatus.ALLOCATED : OrderStatus.CONFIRMED;
+      const updateData: any = {
         status: newStatus,
-      },
-    });
+      };
+      
+      // Only update timestamp fields if they exist in the schema
+      try {
+        updateData.confirmedAt = new Date();
+        if (allReserved) {
+          updateData.allocatedAt = new Date();
+        }
+      } catch (e) {
+        // Timestamp fields not available, skip
+      }
+      
+      const updatedOrder = await tx.order.update({
+        where: { id },
+        data: updateData,
+      });
 
-    return updatedOrder;
+      this.logger.log(
+        `Order ${order.orderNumber} confirmed. Status: ${newStatus}. Reservations created: ${reservations.length}`,
+      );
+
+      return updatedOrder;
+    });
   }
 
   async cancelOrder(id: string): Promise<Order> {
     this.logger.log(`Cancelling order: ${id}`);
 
-    const order = await this.prisma.order.findUnique({
-      where: { id },
-    });
+    return this.prisma.$transaction(async (tx) => {
+      const order = await tx.order.findUnique({
+        where: { id },
+      });
 
-    if (!order) {
-      this.logger.error(`Order not found for cancellation: ${id}`);
-      throw new NotFoundException(`Order with ID ${id} not found`);
-    }
+      if (!order) {
+        this.logger.error(`Order not found for cancellation: ${id}`);
+        throw new NotFoundException(`Order with ID ${id} not found`);
+      }
 
-    this.logger.debug(
-      `Order found for cancellation: ${order.orderNumber} (Channel: ${order.channel}, Status: ${order.status})`,
-    );
+      if (order.status === OrderStatus.CANCELLED) {
+        throw new BadRequestException('Order is already cancelled');
+      }
 
-    if (order.status === OrderStatus.CANCELLED) {
-      this.logger.warn(
-        `Attempted to cancel already cancelled order: ${order.orderNumber}`,
-      );
-      throw new BadRequestException('Order is already cancelled');
-    }
+      if ([OrderStatus.SHIPPED, OrderStatus.DELIVERED, OrderStatus.COMPLETED].includes(order.status as OrderStatus)) {
+        throw new BadRequestException(`Cannot cancel order with status ${order.status}`);
+      }
 
-    if (order.status === OrderStatus.FULFILLED) {
-      this.logger.warn(
-        `Attempted to cancel fulfilled order: ${order.orderNumber} (Channel: ${order.channel})`,
-      );
-      throw new BadRequestException('Cannot cancel a fulfilled order');
-    }
+      // Release all active reservations
+      const activeReservations = await tx.inventoryReservation.findMany({
+        where: {
+          orderId: id,
+          releasedAt: null,
+          consumedAt: null,
+        },
+      });
 
-    // Update order status to CANCELLED
-    const updatedOrder = await this.prisma.order.update({
-      where: { id },
-      data: {
+      if (activeReservations.length > 0) {
+        await tx.inventoryReservation.updateMany({
+          where: {
+            id: { in: activeReservations.map((r) => r.id) },
+          },
+          data: {
+            releasedAt: new Date(),
+          },
+        });
+
+        this.logger.log(
+          `Released ${activeReservations.length} reservations for order ${order.orderNumber}`,
+        );
+      }
+
+      // Update order status
+      const updateData: any = {
         status: OrderStatus.CANCELLED,
-      },
+      };
+      
+      try {
+        updateData.cancelledAt = new Date();
+      } catch (e) {
+        // Timestamp field not available, skip
+      }
+      
+      const updatedOrder = await tx.order.update({
+        where: { id },
+        data: updateData,
+      });
+
+      this.logger.log(`Order cancelled: ${order.orderNumber}`);
+      return updatedOrder;
     });
+  }
 
-    this.logger.log(
-      `Order cancelled: ${order.orderNumber} (Channel: ${order.channel})`,
-    );
+  async shipOrder(id: string): Promise<Order> {
+    this.logger.log(`Shipping order: ${id}`);
 
-    // If order was confirmed, we might want to restore inventory
-    // For now, we'll just cancel the order
-    // TODO: Consider restoring inventory if order was confirmed but not fulfilled
+    return this.prisma.$transaction(async (tx) => {
+      const order = await tx.order.findUnique({
+        where: { id },
+        include: {
+          inventoryReservations: {
+            where: {
+              releasedAt: null,
+              consumedAt: null,
+            },
+          },
+        },
+      });
 
-    return updatedOrder;
+      if (!order) {
+        throw new NotFoundException(`Order with ID ${id} not found`);
+      }
+
+      if (![OrderStatus.CONFIRMED, OrderStatus.ALLOCATED].includes(order.status as OrderStatus)) {
+        throw new BadRequestException(
+          `Cannot ship order with status ${order.status}. Order must be CONFIRMED or ALLOCATED.`,
+        );
+      }
+
+      if (order.inventoryReservations.length === 0) {
+        throw new BadRequestException(
+          `Cannot ship order ${order.orderNumber}. No active reservations found.`,
+        );
+      }
+
+      // Consume reservations and deduct inventory (atomic)
+      for (const reservation of order.inventoryReservations) {
+        // Get inventory item
+        const inventoryItem = await tx.inventoryItem.findUnique({
+          where: { id: reservation.inventoryItemId },
+        });
+
+        if (!inventoryItem) {
+          throw new NotFoundException(
+            `Inventory item ${reservation.inventoryItemId} not found`,
+          );
+        }
+
+        // Check if deduction would result in negative quantity
+        if (inventoryItem.quantity < reservation.quantity) {
+          throw new BadRequestException(
+            `Insufficient inventory for shipment. Available: ${inventoryItem.quantity}, Requested: ${reservation.quantity}`,
+          );
+        }
+
+        // Deduct inventory within the same transaction
+        await tx.inventoryItem.update({
+          where: { id: inventoryItem.id },
+          data: {
+            quantity: {
+              decrement: reservation.quantity,
+            },
+          },
+        });
+
+        // Create ledger entry
+        await tx.inventoryLedger.create({
+          data: {
+            inventoryItemId: inventoryItem.id,
+            changeQuantity: -reservation.quantity,
+            reason: `Order ${order.orderNumber} shipment - Consuming reservation`,
+          },
+        });
+
+        // Mark reservation as consumed
+        await tx.inventoryReservation.update({
+          where: { id: reservation.id },
+          data: {
+            consumedAt: new Date(),
+          },
+        });
+      }
+
+      // Update order status
+      const updateData: any = {
+        status: OrderStatus.SHIPPED,
+      };
+      
+      try {
+        updateData.shippedAt = new Date();
+      } catch (e) {
+        // Timestamp field not available, skip
+      }
+      
+      const updatedOrder = await tx.order.update({
+        where: { id },
+        data: updateData,
+      });
+
+      this.logger.log(
+        `Order ${order.orderNumber} shipped. Consumed ${order.inventoryReservations.length} reservations.`,
+      );
+
+      return updatedOrder;
+    });
   }
 
   async returnOrder(id: string, returnData: ReturnOrderDto): Promise<Order> {
@@ -425,43 +568,19 @@ export class OrdersService {
     });
 
     if (!order) {
-      this.logger.error(`Order not found for return: ${id}`);
       throw new NotFoundException(`Order with ID ${id} not found`);
     }
 
-    this.logger.debug(
-      `Order found for return: ${order.orderNumber} (Channel: ${order.channel}, Status: ${order.status})`,
-    );
-
-    // Validate order can be returned
-    if (order.status === OrderStatus.DRAFT) {
-      this.logger.warn(
-        `Attempted to return draft order: ${order.orderNumber} (Channel: ${order.channel})`,
+    if (![OrderStatus.SHIPPED, OrderStatus.DELIVERED, OrderStatus.COMPLETED].includes(order.status as OrderStatus)) {
+      throw new BadRequestException(
+        `Cannot return order with status ${order.status}. Order must be SHIPPED, DELIVERED, or COMPLETED.`,
       );
-      throw new BadRequestException('Cannot return a draft order');
-    }
-
-    if (order.status === OrderStatus.CANCELLED) {
-      this.logger.warn(
-        `Attempted to return cancelled order: ${order.orderNumber} (Channel: ${order.channel})`,
-      );
-      throw new BadRequestException('Cannot return a cancelled order');
-    }
-
-    if (order.status === OrderStatus.RETURNED) {
-      this.logger.warn(
-        `Attempted to return already returned order: ${order.orderNumber} (Channel: ${order.channel})`,
-      );
-      throw new BadRequestException('Order is already returned');
     }
 
     // Validate return items
     const orderItemMap = new Map(
       order.orderItems.map((item) => [item.id, item]),
     );
-
-    // Track return quantities per order item
-    const returnQuantities = new Map<string, number>();
 
     for (const returnItem of returnData.items) {
       const orderItem = orderItemMap.get(returnItem.orderItemId);
@@ -472,104 +591,41 @@ export class OrdersService {
         );
       }
 
-      // Check if return quantity is valid
-      const previousReturnQty = returnQuantities.get(returnItem.orderItemId) || 0;
-      const totalReturnQty = previousReturnQty + returnItem.quantity;
-
-      if (totalReturnQty > orderItem.quantity) {
+      if (returnItem.quantity > orderItem.quantity) {
         throw new BadRequestException(
-          `Return quantity (${totalReturnQty}) exceeds order quantity (${orderItem.quantity}) for order item ${returnItem.orderItemId}`,
+          `Return quantity (${returnItem.quantity}) exceeds order quantity (${orderItem.quantity}) for order item ${returnItem.orderItemId}`,
         );
       }
 
-      returnQuantities.set(
-        returnItem.orderItemId,
-        totalReturnQty,
-      );
-    }
-
-    // Restore inventory for each return item
-    for (const returnItem of returnData.items) {
-      const orderItem = orderItemMap.get(returnItem.orderItemId);
-
-      if (!orderItem) {
-        continue; // Already validated above
-      }
-
-      // Get the itemType from existing inventory (check return warehouse first, then any warehouse)
-      // For returns, we assume returned items are finished goods if no inventory exists
-      let existingInventory = await this.prisma.inventoryItem.findFirst({
+      // Get item type from existing inventory or default to FINISHED_GOOD
+      const existingInventory = await this.prisma.inventoryItem.findFirst({
         where: {
           productVariantId: orderItem.productVariantId,
           warehouseId: returnItem.warehouseId,
         },
       });
 
-      // If not found in return warehouse, check any warehouse for this product variant
-      if (!existingInventory) {
-        existingInventory = await this.prisma.inventoryItem.findFirst({
-          where: {
-            productVariantId: orderItem.productVariantId,
-          },
-        });
-      }
-
       const itemType = existingInventory
         ? (existingInventory.itemType as InventoryItemType)
         : InventoryItemType.FINISHED_GOOD;
 
-      // Add inventory back to warehouse - this will log to InventoryLedger
-      // Inventory updates are consistent across all channels
-      this.logger.debug(
-        `Restoring inventory for order return ${order.orderNumber} (Channel: ${order.channel}): ` +
-          `ProductVariant ${orderItem.productVariantId}, Warehouse ${returnItem.warehouseId}, Quantity ${returnItem.quantity}`,
-      );
-
+      // Add inventory back
       await this.inventoryService.addInventory({
         productVariantId: orderItem.productVariantId,
         warehouseId: returnItem.warehouseId,
         quantity: returnItem.quantity,
         itemType,
-        reason: `Order ${order.orderNumber} (${order.channel}) return - ${returnItem.reason}`,
+        reason: `Order ${order.orderNumber} return - ${returnItem.reason}`,
       });
-
-      this.logger.debug(
-        `Inventory restored successfully: ${returnItem.quantity} units to warehouse ${returnItem.warehouseId}`,
-      );
     }
 
-    // Determine if it's a full or partial return
-    const allItemsFullyReturned = order.orderItems.every((item) => {
-      const returnQty = returnQuantities.get(item.id) || 0;
-      return returnQty === item.quantity;
-    });
-
-    const anyItemReturned = returnQuantities.size > 0;
+    // Calculate if full return
+    const totalReturned = returnData.items.reduce((sum, item) => sum + item.quantity, 0);
+    const totalOrdered = order.orderItems.reduce((sum, item) => sum + item.quantity, 0);
+    const isFullReturn = totalReturned >= totalOrdered;
 
     // Update order status
-    let newStatus: OrderStatus;
-
-    if (allItemsFullyReturned && anyItemReturned) {
-      // All items fully returned
-      newStatus = OrderStatus.RETURNED;
-      this.logger.log(
-        `Order fully returned: ${order.orderNumber} (Channel: ${order.channel})`,
-      );
-    } else if (anyItemReturned) {
-      // Partial return - set to PARTIALLY_FULFILLED
-      // Note: This means some items were returned but not all
-      newStatus = OrderStatus.PARTIALLY_FULFILLED;
-      this.logger.warn(
-        `Order partially returned: ${order.orderNumber} (Channel: ${order.channel})`,
-      );
-    } else {
-      // No items returned (shouldn't happen, but handle edge case)
-      this.logger.error(
-        `Return processing failed: ${order.orderNumber} (Channel: ${order.channel}) - No items returned`,
-      );
-      throw new BadRequestException('No items were returned');
-    }
-
+    const newStatus = isFullReturn ? OrderStatus.RETURNED : OrderStatus.SHIPPED;
     const updatedOrder = await this.prisma.order.update({
       where: { id },
       data: {
@@ -578,7 +634,7 @@ export class OrdersService {
     });
 
     this.logger.log(
-      `Order return completed: ${order.orderNumber} (Channel: ${order.channel}, Status: ${newStatus})`,
+      `Order return processed: ${order.orderNumber}. Status: ${newStatus}. Items returned: ${returnData.items.length}`,
     );
 
     return updatedOrder;

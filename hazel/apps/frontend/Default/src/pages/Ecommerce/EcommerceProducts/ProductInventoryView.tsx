@@ -87,6 +87,16 @@ const ProductInventoryView: React.FC = () => {
       {variants.map((variant) => {
         const inventory = inventoryData[variant.id] || [];
         const totalQuantity = inventory.reduce((sum, item) => sum + item.quantity, 0);
+        
+        // Parse attributes JSON
+        let attributes: Record<string, any> = {};
+        if (variant.attributes) {
+          try {
+            attributes = JSON.parse(variant.attributes);
+          } catch (e) {
+            // Invalid JSON, ignore
+          }
+        }
 
         return (
           <Card key={variant.id} className="mb-4">
@@ -95,8 +105,8 @@ const ProductInventoryView: React.FC = () => {
                 <Col>
                   <h5 className="mb-0">
                     Variant: {variant.sku}
-                    {variant.color && <span className="text-muted ms-2">({variant.color})</span>}
-                    {variant.size && <span className="text-muted ms-2">Size: {variant.size}</span>}
+                    {attributes.color && <span className="text-muted ms-2">({attributes.color})</span>}
+                    {attributes.size && <span className="text-muted ms-2">Size: {attributes.size}</span>}
                   </h5>
                 </Col>
                 <Col xs="auto">

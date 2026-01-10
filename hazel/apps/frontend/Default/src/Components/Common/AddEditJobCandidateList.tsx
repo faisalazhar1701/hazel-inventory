@@ -7,7 +7,8 @@ import * as Yup from "yup";
 
 import dummy from "assets/images/users/user-dummy-img.jpg"
 
-import { addCandidate as onAddCandidate } from "slices/thunks";
+// Demo thunk removed - using empty function
+const onAddCandidate = (data: any) => Promise.resolve(data);
 
 interface modal {
     show: boolean,

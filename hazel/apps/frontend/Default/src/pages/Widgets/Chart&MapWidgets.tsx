@@ -10,7 +10,9 @@ import { MyPortfolioCharts } from './WidgetsCharts';
 import { SessionsByCountriesCharts } from './WidgetsCharts';
 import { AudiencesMetricsCharts } from './WidgetsCharts';
 import { TopReferralsPagesCharts } from './WidgetsCharts';
-import { widgetsAudiences, widgetsPortfolio, } from "../../common/data/index";
+// Demo data removed - using empty arrays
+const widgetsAudiences: any[] = [];
+const widgetsPortfolio: any[] = [];
 
 const ChartMapWidgets = () => {
     return (
@@ -138,10 +140,10 @@ const ChartMapWidgets = () => {
                         <CardHeader className="p-0 border-0 bg-light-subtle">
                             <Row className="g-0 text-center">
 
-                                {(widgetsAudiences || []).map((item, key) => (<div className="col-6 col-sm-4" key={key}>
+                                {(widgetsAudiences || []).map((item: any, key: number) => (<div className="col-6 col-sm-4" key={key}>
                                     <div className="p-3 border border-dashed border-start-0">
                                         <h5 className="mb-1">
-                                            {item.subCounter.map((item, key) => (<span className="counter-value" data-target="3" key={key}>
+                                            {item.subCounter.map((item: any, key: number) => (<span className="counter-value" data-target="3" key={key}>
                                                 <CountUp
                                                     start={0}
                                                     prefix={item.prefix}
@@ -203,7 +205,7 @@ const ChartMapWidgets = () => {
 
                             <ListGroup className="border-dashed mb-0" flush>
 
-                                {(widgetsPortfolio || []).map((item, key) => (<ListGroupItem className="px-0" key={key}>
+                                {(widgetsPortfolio || []).map((item: any, key: number) => (<ListGroupItem className="px-0" key={key}>
                                     <div className="d-flex">
                                         <div className="flex-shrink-0 avatar-xs">
                                             <span className="avatar-title bg-light p-1 rounded-circle">

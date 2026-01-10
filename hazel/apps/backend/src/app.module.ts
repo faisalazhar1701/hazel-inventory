@@ -5,6 +5,11 @@ import { AuthModule } from './modules/auth/auth.module';
 import { UsersModule } from './modules/users/users.module';
 import { CompaniesModule } from './modules/companies/companies.module';
 import { ProductsModule } from './modules/products/products.module';
+import { BrandsModule } from './modules/brands/brands.module';
+import { CollectionsModule } from './modules/collections/collections.module';
+import { DropsModule } from './modules/drops/drops.module';
+import { StylesModule } from './modules/styles/styles.module';
+import { WarehousesModule } from './modules/warehouses/warehouses.module';
 import { InventoryModule } from './modules/inventory/inventory.module';
 import { OrdersModule } from './modules/orders/orders.module';
 import { ProductionModule } from './modules/production/production.module';
@@ -23,6 +28,11 @@ import { IntegrationsModule } from './modules/integrations/integrations.module';
     UsersModule,
     CompaniesModule,
     ProductsModule,
+    BrandsModule,
+    CollectionsModule,
+    DropsModule,
+    StylesModule,
+    WarehousesModule,
     InventoryModule,
     OrdersModule,
     ProductionModule,

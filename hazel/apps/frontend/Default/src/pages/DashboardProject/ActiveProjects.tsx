@@ -1,7 +1,8 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Card, CardBody, CardHeader, Col } from 'reactstrap';
-import { activeProjects } from '../../common/data';
+// Demo data removed - using empty array
+const activeProjects: any[] = [];
 
 const ActiveProjects = () => {
     return (
@@ -29,7 +30,7 @@ const ActiveProjects = () => {
                                 </thead>
 
                                 <tbody>
-                                    {(activeProjects || []).map((item, key) => (<tr key={key}>
+                                                {(activeProjects || []).map((item: any, key: number) => (<tr key={key}>
                                         <td className="fw-medium">{item.projectName}</td>
                                         <td>
                                             <img src={item.img} className="avatar-xxs rounded-circle me-1" alt="" />
@@ -45,7 +46,7 @@ const ActiveProjects = () => {
                                         </td>
                                         <td>
                                             <div className="avatar-group flex-nowrap">
-                                                {item.subItem.map((item, key) => (<div className="avatar-group-item" key={key}>
+                                                {item.subItem.map((item: any, key: number) => (<div className="avatar-group-item" key={key}>
                                                     <Link to="#" className="d-inline-block">
                                                         <img src={item.assImg} alt="" className="rounded-circle avatar-xxs" />
                                                     </Link>

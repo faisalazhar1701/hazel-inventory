@@ -3,7 +3,8 @@ import { Card, CardBody, CardHeader, Col, Row } from 'reactstrap';
 import CountUp from "react-countup";
 import { useSelector, useDispatch } from "react-redux";
 import { AudiencesCharts } from './DashboardAnalyticsCharts';
-import { getAudiencesMetricsChartsData } from "../../slices/thunks";
+// Demo thunk removed - using empty function
+const getAudiencesMetricsChartsData = (data?: any) => Promise.resolve([]);
 import { createSelector } from 'reselect';
 
 const AudiencesMetrics = () => {

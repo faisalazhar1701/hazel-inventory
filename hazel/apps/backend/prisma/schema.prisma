@@ -7,31 +7,95 @@ datasource db {
   url      = "file::memory:"
 }
 
-model Product {
-  id        String           @id @default(uuid())
+model Brand {
+  id          String       @id @default(uuid())
+  name        String
+  description String?
+  createdAt   DateTime     @default(now())
+  collections Collection[]
+  products    Product[]
+
+  @@map("brands")
+}
+
+model Collection {
+  id       String    @id @default(uuid())
+  name     String
+  season   String?
+  year     Int?
+  brandId  String?
+  brand    Brand?    @relation(fields: [brandId], references: [id], onDelete: SetNull)
+  drops    Drop[]
+  products Product[]
+
+  @@map("collections")
+}
+
+model Drop {
+  id           String      @id @default(uuid())
+  name         String
+  releaseDate  DateTime?
+  collectionId String?
+  collection   Collection? @relation(fields: [collectionId], references: [id], onDelete: SetNull)
+
+  @@map("drops")
+}
+
+model Style {
+  id        String   @id @default(uuid())
   name      String
-  sku       String           @unique
-  status    String
-  createdAt DateTime         @default(now())
-  updatedAt DateTime         @updatedAt
-  variants  ProductVariant[]
+  code      String?
+  productId String?
+  product   Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
+
+  @@unique([productId])
+  @@map("styles")
+}
+
+model Product {
+  id              String           @id @default(uuid())
+  name            String
+  sku             String           @unique
+  description     String?
+  lifecycleStatus String           @default("DRAFT") // DRAFT, ACTIVE, DISCONTINUED
+  brandId         String?
+  collectionId    String?
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  brand           Brand?           @relation(fields: [brandId], references: [id], onDelete: SetNull)
+  collection      Collection?      @relation(fields: [collectionId], references: [id], onDelete: SetNull)
+  style           Style?
+  variants        ProductVariant[]
 
   @@map("products")
 }
 
 model ProductVariant {
-  id             String          @id @default(uuid())
+  id             String           @id @default(uuid())
   productId      String
-  color          String?
-  size           String?
-  sku            String          @unique
-  cost           Float
-  price          Float
+  sku            String           @unique
+  attributes     String? // JSON stored as text for SQLite
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+  product        Product          @relation(fields: [productId], references: [id], onDelete: Cascade)
   inventoryItems InventoryItem[]
   orderItems     OrderItem[]
-  product        Product         @relation(fields: [productId], references: [id], onDelete: Cascade)
+  bomAsParent    BillOfMaterial[] @relation("ParentVariant")
+  bomAsComponent BillOfMaterial[] @relation("ComponentVariant")
 
   @@map("product_variants")
+}
+
+model BillOfMaterial {
+  id                 String         @id @default(uuid())
+  parentVariantId    String
+  componentVariantId String
+  quantity           Float
+  parentVariant      ProductVariant @relation("ParentVariant", fields: [parentVariantId], references: [id], onDelete: Cascade)
+  componentVariant   ProductVariant @relation("ComponentVariant", fields: [componentVariantId], references: [id], onDelete: Cascade)
+
+  @@unique([parentVariantId, componentVariantId])
+  @@map("bill_of_materials")
 }
 
 model Warehouse {
@@ -45,14 +109,15 @@ model Warehouse {
 }
 
 model InventoryItem {
-  id               String            @id @default(uuid())
+  id               String                 @id @default(uuid())
   productVariantId String
   warehouseId      String
   quantity         Int
   itemType         String
-  warehouse        Warehouse         @relation(fields: [warehouseId], references: [id], onDelete: Cascade)
-  productVariant   ProductVariant    @relation(fields: [productVariantId], references: [id], onDelete: Cascade)
+  warehouse        Warehouse              @relation(fields: [warehouseId], references: [id], onDelete: Cascade)
+  productVariant   ProductVariant         @relation(fields: [productVariantId], references: [id], onDelete: Cascade)
   ledgerEntries    InventoryLedger[]
+  reservations     InventoryReservation[]
 
   @@unique([productVariantId, warehouseId])
   @@map("inventory_items")
@@ -69,30 +134,60 @@ model InventoryLedger {
   @@map("inventory_ledger")
 }
 
+model InventoryReservation {
+  id               String        @id @default(uuid())
+  orderId          String
+  orderItemId      String
+  inventoryItemId  String
+  productVariantId String
+  warehouseId      String
+  quantity         Int
+  reservedAt       DateTime      @default(now())
+  consumedAt       DateTime?
+  releasedAt       DateTime?
+  order            Order         @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  orderItem        OrderItem     @relation(fields: [orderItemId], references: [id], onDelete: Cascade)
+  inventoryItem    InventoryItem @relation(fields: [inventoryItemId], references: [id], onDelete: Cascade)
+
+  @@unique([orderId, orderItemId, warehouseId])
+  @@index([orderId])
+  @@index([productVariantId, warehouseId])
+  @@index([inventoryItemId])
+  @@map("inventory_reservations")
+}
+
 model Order {
-  id           String        @id @default(uuid())
-  orderNumber  String        @unique
-  channel      String
-  status       String
-  totalAmount  Float
-  currency     String
-  createdAt    DateTime      @default(now())
-  updatedAt    DateTime      @updatedAt
-  fulfillments Fulfillment[]
-  orderItems   OrderItem[]
+  id                    String                 @id @default(uuid())
+  orderNumber           String                 @unique
+  channel               String
+  status                String // DRAFT, CONFIRMED, ALLOCATED, SHIPPED, DELIVERED, COMPLETED, CANCELLED, RETURNED
+  totalAmount           Float
+  currency              String
+  confirmedAt           DateTime?
+  allocatedAt           DateTime?
+  shippedAt             DateTime?
+  deliveredAt           DateTime?
+  completedAt           DateTime?
+  cancelledAt           DateTime?
+  createdAt             DateTime               @default(now())
+  updatedAt             DateTime               @updatedAt
+  fulfillments          Fulfillment[]
+  orderItems            OrderItem[]
+  inventoryReservations InventoryReservation[]
 
   @@map("orders")
 }
 
 model OrderItem {
-  id               String         @id @default(uuid())
+  id               String                 @id @default(uuid())
   orderId          String
   productVariantId String
   quantity         Int
   unitPrice        Float
   totalPrice       Float
-  productVariant   ProductVariant @relation(fields: [productVariantId], references: [id], onDelete: Cascade)
-  order            Order          @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productVariant   ProductVariant         @relation(fields: [productVariantId], references: [id], onDelete: Cascade)
+  order            Order                  @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  reservations     InventoryReservation[]
 
   @@map("order_items")
 }
@@ -108,4 +203,3 @@ model Fulfillment {
 
   @@map("fulfillments")
 }
-

@@ -21,12 +21,11 @@ import * as Yup from "yup"
 import Select from "react-select";
 
 
-import {
-  getTasks as onGetTasks,
-  addCardData as onAddCardData,
-  updateCardData as onUpdateCardData,
-  deleteKanban as OnDeleteKanban,
-} from "../../../slices/thunks"
+// Demo thunks removed - using empty functions
+const onGetTasks = (data?: any) => Promise.resolve([]);
+const onAddCardData = (data?: any) => Promise.resolve();
+const onUpdateCardData = (data?: any) => Promise.resolve();
+const OnDeleteKanban = (data?: any) => Promise.resolve();
 
 //redux
 import { useSelector, useDispatch } from "react-redux"
@@ -37,7 +36,9 @@ import SimpleBar from "simplebar-react"
 // import moment from "moment"
 import { ToastContainer } from "react-toastify"
 import Spinners from "Components/Common/Spinner"
-import { AddTeamMember, headData } from "common/data"
+// Demo data removed - using empty arrays
+const AddTeamMember: any[] = [];
+const headData: any[] = [];
 import DeleteModal from "Components/Common/DeleteModal";
 import Flatpickr from "react-flatpickr";
 import moment from "moment";

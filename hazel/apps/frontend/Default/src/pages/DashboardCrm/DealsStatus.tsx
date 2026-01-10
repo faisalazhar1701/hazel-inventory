@@ -1,7 +1,8 @@
 import React from 'react';
 import { Card, CardBody, CardHeader, Col, DropdownItem, DropdownMenu, DropdownToggle, UncontrolledDropdown } from 'reactstrap';
 import { Link } from 'react-router-dom';
-import { dealsStatus } from "../../common/data";
+// Demo data removed - using empty array
+const dealsStatus: any[] = [];
 
 const DealsStatus = () => {
     return (

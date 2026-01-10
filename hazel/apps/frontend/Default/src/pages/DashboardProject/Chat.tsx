@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Card, CardBody, CardHeader, Col, DropdownItem, DropdownMenu, DropdownToggle, UncontrolledDropdown } from 'reactstrap';
 
-import { dashboardChat } from '../../common/data';
+// Demo data removed - using empty array
+const dashboardChat: any[] = [];
 
 //Import Scrollbar
 import PerfectScrollbar from "react-perfect-scrollbar";

@@ -122,6 +122,13 @@ export class ApiClient {
   }
 
   /**
+   * PATCH request
+   */
+  async patch<T>(endpoint: string, data?: unknown, options?: RequestOptions): Promise<T> {
+    return this.request<T>('PATCH', endpoint, data, options);
+  }
+
+  /**
    * DELETE request
    */
   async delete<T>(endpoint: string, options?: RequestOptions): Promise<T> {

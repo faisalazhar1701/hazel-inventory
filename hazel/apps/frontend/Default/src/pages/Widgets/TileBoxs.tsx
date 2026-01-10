@@ -7,7 +7,12 @@ import CountUp from "react-countup";
 //Import Icons
 import FeatherIcon from "feather-icons-react";
 
-import { tileBoxs1, tileBoxs2, tileBoxs3, tileBoxes4, tileBoxes5 } from "../../common/data/index";
+// Demo data removed - using empty arrays
+const tileBoxs1: any[] = [];
+const tileBoxs2: any[] = [];
+const tileBoxs3: any[] = [];
+const tileBoxes4: any[] = [];
+const tileBoxes5: any[] = [];
 
 const TileBoxs = () => {
     return (
@@ -104,7 +109,7 @@ const TileBoxs = () => {
                                 <div>
                                     <p className={"fw-medium mb-0 text-" + item.labelClass}>{item.label}</p>
                                     <h2 className={"mt-4 ff-secondary fw-semibold " + item.counterClass}>
-                                        {item.subCounter.map((item, key) => (<span className="counter-value" key={key}>
+                                        {item.subCounter.map((item: any, key: number) => (<span className="counter-value" key={key}>
                                             <CountUp
                                                 start={0}
                                                 prefix={item.prefix}

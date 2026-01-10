@@ -6,7 +6,8 @@ import { CountriesCharts } from './DashboardAnalyticsCharts';
 
 import { VectorMap } from '@south-paw/react-vector-maps'
 import world from '../../common/world.svg.json';
-import { getAllData } from "../../slices/thunks";
+// Demo thunk removed - using empty function
+const getAllData = (data?: any) => Promise.resolve([]);
 import { createSelector } from 'reselect';
 
 const LiveUsers = () => {

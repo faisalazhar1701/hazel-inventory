@@ -1,6 +1,7 @@
 import React from 'react';
 import { Card, CardHeader, Col, DropdownItem, DropdownMenu, DropdownToggle, UncontrolledDropdown } from 'reactstrap';
-import { teamMembers } from '../../common/data';
+// Demo data removed - using empty array
+const teamMembers: any[] = [];
 import { TeamMembersCharts } from './DashboardProjectCharts';
 
 const TeamMembers = () => {

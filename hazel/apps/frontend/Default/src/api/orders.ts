@@ -1,18 +1,24 @@
 import { apiClient } from './client';
-import { OrderChannel, OrderStatus } from '../lib/shared-types';
 
-export interface OrderResponse {
-  id: string;
-  orderNumber: string;
-  channel: OrderChannel;
-  status: OrderStatus;
-  totalAmount: number;
-  currency: string;
-  createdAt: string;
-  updatedAt: string;
+export enum OrderStatus {
+  DRAFT = 'DRAFT',
+  CONFIRMED = 'CONFIRMED',
+  ALLOCATED = 'ALLOCATED',
+  SHIPPED = 'SHIPPED',
+  DELIVERED = 'DELIVERED',
+  COMPLETED = 'COMPLETED',
+  CANCELLED = 'CANCELLED',
+  RETURNED = 'RETURNED',
 }
 
-export interface OrderItemResponse {
+export enum OrderChannel {
+  DTC = 'DTC',
+  B2B = 'B2B',
+  POS = 'POS',
+  WHOLESALE = 'WHOLESALE',
+}
+
+export interface OrderItem {
   id: string;
   orderId: string;
   productVariantId: string;
@@ -22,9 +28,8 @@ export interface OrderItemResponse {
   productVariant?: {
     id: string;
     sku: string;
-    color: string | null;
-    size: string | null;
-    product?: {
+    attributes?: string;
+    product: {
       id: string;
       name: string;
       sku: string;
@@ -32,66 +37,100 @@ export interface OrderItemResponse {
   };
 }
 
-export interface OrderDetailResponse extends OrderResponse {
-  orderItems: OrderItemResponse[];
+export interface InventoryReservation {
+  id: string;
+  orderId: string;
+  orderItemId: string;
+  inventoryItemId: string;
+  productVariantId: string;
+  warehouseId: string;
+  quantity: number;
+  reservedAt: string;
+  consumedAt?: string;
+  releasedAt?: string;
 }
 
-// Map backend order status to UI status
-export const mapOrderStatusToUI = (status: OrderStatus): string => {
-  switch (status) {
-    case 'DRAFT':
-      return 'Pending';
-    case 'CONFIRMED':
-      return 'Inprogress';
-    case 'PARTIALLY_FULFILLED':
-      return 'Inprogress';
-    case 'FULFILLED':
-      return 'Delivered';
-    case 'CANCELLED':
-      return 'Cancelled';
-    case 'RETURNED':
-      return 'Returns';
-    default:
-      return 'Pending';
+export interface Order {
+  id: string;
+  orderNumber: string;
+  channel: OrderChannel;
+  status: OrderStatus;
+  totalAmount: number;
+  currency: string;
+  confirmedAt?: string;
+  allocatedAt?: string;
+  shippedAt?: string;
+  deliveredAt?: string;
+  completedAt?: string;
+  cancelledAt?: string;
+  createdAt: string;
+  updatedAt: string;
+  orderItems?: OrderItem[];
+  inventoryReservations?: InventoryReservation[];
+}
+
+export interface CreateOrderItemDto {
+  productVariantId: string;
+  quantity: number;
+  unitPrice: number;
+  warehouseId: string;
+}
+
+export interface CreateOrderDto {
+  channel: OrderChannel;
+  currency: string;
+  items: CreateOrderItemDto[];
+}
+
+export interface ReturnOrderItemDto {
+  orderItemId: string;
+  quantity: number;
+  warehouseId: string;
+  reason: string;
+}
+
+export interface ReturnOrderDto {
+  items: ReturnOrderItemDto[];
+}
+
+class OrdersAPI {
+  private basePath = '/orders';
+
+  async listOrders(): Promise<Order[]> {
+    return apiClient.get<Order[]>(this.basePath);
   }
-};
 
-// Map backend channel to display format
-const mapChannelToDisplay = (channel: OrderChannel): string => {
-  return channel;
-};
+  // Backward compatibility alias
+  async getOrders(): Promise<Order[]> {
+    return this.listOrders();
+  }
 
-// Map backend order to UI format
-const mapOrderToUI = (order: OrderResponse): any => {
-  return {
-    id: order.id,
-    _id: order.id,
-    orderId: order.orderNumber,
-    customer: 'N/A', // Customer info not in backend yet
-    product: 'Multiple', // Will be derived from order items
-    orderDate: order.createdAt,
-    amount: `${order.currency} ${order.totalAmount.toFixed(2)}`,
-    payment: 'N/A', // Payment method not in backend yet
-    status: mapOrderStatusToUI(order.status),
-    channel: mapChannelToDisplay(order.channel),
-    // Backend fields
-    orderNumber: order.orderNumber,
-    orderStatus: order.status,
-    totalAmount: order.totalAmount,
-    currency: order.currency,
-    createdAt: order.createdAt,
-    updatedAt: order.updatedAt,
-  };
-};
+  async getOrderById(id: string): Promise<Order> {
+    return apiClient.get<Order>(`${this.basePath}/${id}`);
+  }
 
-export const ordersApi = {
-  getOrders: async (): Promise<any[]> => {
-    const orders = await apiClient.get<OrderResponse[]>('/orders');
-    return orders.map(mapOrderToUI);
-  },
+  async createOrder(data: CreateOrderDto): Promise<Order> {
+    return apiClient.post<Order>(this.basePath, data);
+  }
 
-  getOrderById: async (orderId: string): Promise<OrderDetailResponse> => {
-    return apiClient.get<OrderDetailResponse>(`/orders/${orderId}`);
-  },
-};
+  async confirmOrder(id: string): Promise<Order> {
+    return apiClient.patch<Order>(`${this.basePath}/${id}/confirm`, {});
+  }
 
+  async cancelOrder(id: string): Promise<Order> {
+    return apiClient.patch<Order>(`${this.basePath}/${id}/cancel`, {});
+  }
+
+  async shipOrder(id: string): Promise<Order> {
+    return apiClient.patch<Order>(`${this.basePath}/${id}/ship`, {});
+  }
+
+  async returnOrder(id: string, data: ReturnOrderDto): Promise<Order> {
+    return apiClient.patch<Order>(`${this.basePath}/${id}/return`, data);
+  }
+}
+
+export const ordersAPI = new OrdersAPI();
+
+// Backward compatibility
+export const ordersApi = ordersAPI;

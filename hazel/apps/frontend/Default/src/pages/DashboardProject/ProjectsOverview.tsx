@@ -3,7 +3,8 @@ import { Card, CardBody, CardHeader, Col, Row } from 'reactstrap';
 import CountUp from "react-countup";
 import { useSelector, useDispatch } from "react-redux";
 import { ProjectsOverviewCharts } from './DashboardProjectCharts';
-import { getProjectChartsData } from '../../slices/thunks';
+// Demo thunk removed - using empty function
+const getProjectChartsData = (data?: any) => Promise.resolve([]);
 import { createSelector } from 'reselect';
 
 const ProjectsOverview = () => {

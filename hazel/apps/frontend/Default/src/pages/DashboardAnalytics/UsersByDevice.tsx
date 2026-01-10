@@ -4,7 +4,8 @@ import { useSelector, useDispatch } from "react-redux";
 //Import Icons
 import FeatherIcon from "feather-icons-react";
 
-import { getUserDeviceChartsData } from "../../slices/thunks";
+// Demo thunk removed - using empty function
+const getUserDeviceChartsData = (data?: any) => Promise.resolve([]);
 
 import { UsersByDeviceCharts } from './DashboardAnalyticsCharts';
 import { createSelector } from 'reselect';

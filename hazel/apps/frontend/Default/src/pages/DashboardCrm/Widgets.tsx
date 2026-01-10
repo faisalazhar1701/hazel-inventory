@@ -1,5 +1,6 @@
 import React from 'react';
-import { crmWidgets } from "../../common/data";
+// Demo data removed - using empty array
+const crmWidgets: any[] = [];
 import CountUp from "react-countup";
 
 const Widgets = () => {

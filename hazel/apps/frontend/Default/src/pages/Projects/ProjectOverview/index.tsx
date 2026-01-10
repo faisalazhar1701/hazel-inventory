@@ -1,19 +1,8 @@
-import React from 'react';
-import { Container } from 'reactstrap';
-import Section from './Section';
-
+import React from "react";
+import PlaceholderPage from "../../PlaceholderPage";
 
 const ProjectOverview = () => {
-    document.title="Project Overview | Hazel Inventory";
-    return (
-        <React.Fragment>
-            <div className="page-content">
-                <Container fluid>                    
-                <Section />
-                </Container>
-            </div>
-        </React.Fragment>
-    );
+  return <PlaceholderPage title="Project Overview" description="Project overview page will be implemented here." />;
 };
 
 export default ProjectOverview;

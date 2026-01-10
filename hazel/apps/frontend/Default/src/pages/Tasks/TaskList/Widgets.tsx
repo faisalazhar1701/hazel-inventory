@@ -1,12 +1,13 @@
 import React from 'react';
 import { Card, CardBody, Col } from 'reactstrap';
 import CountUp from "react-countup";
-import { taskWidgets } from '../../../common/data';
+// Demo data removed - using empty array
+const taskWidgets: any[] = [];
 
 const Widgets = () => {
     return (
         <React.Fragment>
-            {taskWidgets.map((item, key) => (
+            {taskWidgets.map((item: any, key: number) => (
                 <Col xxl={3} sm={6} key={key}>
                     <Card className="card-animate">
                         <CardBody>

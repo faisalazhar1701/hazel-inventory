@@ -4,25 +4,18 @@ import { useNavigate } from "react-router-dom";
 const Navdata = () => {
     const history = useNavigate();
     //state data
-    const [isDashboard, setIsDashboard] = useState<boolean>(false);
-    const [isApps, setIsApps] = useState<boolean>(false);
     const [isAuth, setIsAuth] = useState<boolean>(false);
     const [isPages, setIsPages] = useState<boolean>(false);
+    const [isMerchandising, setIsMerchandising] = useState<boolean>(false);
+    const [isInventory, setIsInventory] = useState<boolean>(false);
+    const [isOrders, setIsOrders] = useState<boolean>(false);
     const [isBaseUi, setIsBaseUi] = useState<boolean>(false);
     const [isAdvanceUi, setIsAdvanceUi] = useState<boolean>(false);
     const [isForms, setIsForms] = useState<boolean>(false);
     const [isTables, setIsTables] = useState<boolean>(false);
-    const [isCharts, setIsCharts] = useState<boolean>(false);
+    // Charts state removed
     const [isIcons, setIsIcons] = useState<boolean>(false);
     const [isMaps, setIsMaps] = useState<boolean>(false);
-    const [isMultiLevel, setIsMultiLevel] = useState<boolean>(false);
-
-    // Apps
-    const [isCalendar, setCalendar] = useState<boolean>(false);
-    const [isEcommerce, setIsEcommerce] = useState<boolean>(false);
-    const [isProjects, setIsProjects] = useState<boolean>(false);
-    const [isTasks, setIsTasks] = useState<boolean>(false);
-    const [isInvoices, setIsInvoices] = useState<boolean>(false);
 
 
     // Authentication
@@ -39,14 +32,9 @@ const Navdata = () => {
     // Pages
     const [isProfile, setIsProfile] = useState<boolean>(false);
 
-    // Charts
-    const [isApex, setIsApex] = useState<boolean>(false);
+    // Charts state removed
 
-    // Multi Level
-    const [isLevel1, setIsLevel1] = useState<boolean>(false);
-    const [isLevel2, setIsLevel2] = useState<boolean>(false);
-
-    const [iscurrentState, setIscurrentState] = useState('Dashboard');
+    const [iscurrentState, setIscurrentState] = useState('');
 
     function updateIconSidebar(e: any) {
         if (e && e.target && e.target.getAttribute("sub-items")) {
@@ -65,12 +53,6 @@ const Navdata = () => {
 
     useEffect(() => {
         document.body.classList.remove('twocolumn-panel');
-        if (iscurrentState !== 'Dashboard') {
-            setIsDashboard(false);
-        }
-        if (iscurrentState !== 'Apps') {
-            setIsApps(false);
-        }
         if (iscurrentState !== 'Auth') {
             setIsAuth(false);
         }
@@ -89,37 +71,37 @@ const Navdata = () => {
         if (iscurrentState !== 'Tables') {
             setIsTables(false);
         }
-        if (iscurrentState !== 'Charts') {
-            setIsCharts(false);
-        }
+        // Charts removed
         if (iscurrentState !== 'Icons') {
             setIsIcons(false);
         }
         if (iscurrentState !== 'Maps') {
             setIsMaps(false);
         }
-        if (iscurrentState !== 'MuliLevel') {
-            setIsMultiLevel(false);
+        if (iscurrentState !== 'Merchandising') {
+            setIsMerchandising(false);
         }
-        if (iscurrentState === 'Widgets') {
-            history("/widgets");
-            document.body.classList.add('twocolumn-panel');
+        if (iscurrentState !== 'Inventory') {
+            setIsInventory(false);
+        }
+        if (iscurrentState !== 'Orders') {
+            setIsOrders(false);
         }
     }, [
         history,
         iscurrentState,
-        isDashboard,
-        isApps,
         isAuth,
         isPages,
         isBaseUi,
         isAdvanceUi,
         isForms,
         isTables,
-        isCharts,
+        // isCharts removed
         isIcons,
         isMaps,
-        isMultiLevel,
+        isMerchandising,
+        isInventory,
+        isOrders,
     ]);
 
     const menuItems: any = [
@@ -129,165 +111,68 @@ const Navdata = () => {
         },
         {
             id: "dashboard",
-            label: "Dashboards",
+            label: "Dashboard",
             icon: "ri-dashboard-2-line",
+            link: "/dashboard",
+        },
+        {
+            id: "products",
+            label: "Products",
+            icon: "ri-product-hunt-line",
+            link: "/products",
+        },
+        {
+            id: "merchandising",
+            label: "Merchandising",
+            icon: "ri-store-line",
             link: "/#",
-            stateVariables: isDashboard,
             click: function (e: any) {
                 e.preventDefault();
-                setIsDashboard(!isDashboard);
-                setIscurrentState('Dashboard');
+                setIsMerchandising(!isMerchandising);
+                setIscurrentState('Merchandising');
                 updateIconSidebar(e);
             },
+            stateVariables: isMerchandising,
             subItems: [
-                {
-                    id: "analytics",
-                    label: "Analytics",
-                    link: "/dashboard-analytics",
-                    parentId: "dashboard",
-                },
-                {
-                    id: "crm",
-                    label: "CRM",
-                    link: "/dashboard-crm",
-                    parentId: "dashboard",
-                },
-                {
-                    id: "ecommerce",
-                    label: "Ecommerce",
-                    link: "/dashboard",
-                    parentId: "dashboard",
-                },
-                {
-                    id: "projects",
-                    label: "Projects",
-                    link: "/dashboard-projects",
-                    parentId: "dashboard",
-                },
+                { id: "brands", label: "Brands", link: "/merchandising/brands", parentId: "merchandising" },
+                { id: "collections", label: "Collections", link: "/merchandising/collections", parentId: "merchandising" },
+                { id: "drops", label: "Drops", link: "/merchandising/drops", parentId: "merchandising" },
+                { id: "styles", label: "Styles", link: "/merchandising/styles", parentId: "merchandising" },
             ],
         },
         {
-            id: "apps",
-            label: "Apps",
-            icon: "ri-apps-2-line",
+            id: "inventory",
+            label: "Inventory",
+            icon: "ri-archive-line",
             link: "/#",
             click: function (e: any) {
                 e.preventDefault();
-                setIsApps(!isApps);
-                setIscurrentState('Apps');
+                setIsInventory(!isInventory);
+                setIscurrentState('Inventory');
                 updateIconSidebar(e);
             },
-            stateVariables: isApps,
+            stateVariables: isInventory,
             subItems: [
-                {
-                    id: "calendar",
-                    label: "Calendar",
-                    link: "/#",
-                    parentId: "apps",
-                    isChildItem: true,
-                    click: function (e: any) {
-                        e.preventDefault();
-                        setCalendar(!isCalendar);
-                    },
-                    stateVariables: isCalendar,
-                    childItems: [
-                        {
-                            id: 1,
-                            label: "Main Calendar",
-                            link: "/apps-calendar",
-                            parentId: "apps"
-                        },
-                        {
-                            id: 2,
-                            label: "Month Grid",
-                            link: "/apps-calendar-month-grid",
-                            parentId: "apps"
-                        },
-                    ]
-                },
-                {
-                    id: "appsecommerce",
-                    label: "Ecommerce",
-                    link: "/#",
-                    isChildItem: true,
-                    click: function (e: any) {
-                        e.preventDefault();
-                        setIsEcommerce(!isEcommerce);
-                    },
-                    parentId: "apps",
-                    stateVariables: isEcommerce,
-                    childItems: [
-                        { id: 1, label: "Products", link: "/apps-ecommerce-products", parentId: "apps" },
-                        { id: 2, label: "Product Details", link: "/apps-ecommerce-product-details", parentId: "apps" },
-                        { id: 3, label: "Create Product", link: "/apps-ecommerce-add-product", parentId: "apps" },
-                        { id: 4, label: "Orders", link: "/apps-ecommerce-orders", parentId: "apps" },
-                        { id: 5, label: "Order Details", link: "/apps-ecommerce-order-details", parentId: "apps" },
-                        { id: 6, label: "Customers", link: "/apps-ecommerce-customers", parentId: "apps" },
-                        { id: 7, label: "Shopping Cart", link: "/apps-ecommerce-cart", parentId: "apps" },
-                        { id: 8, label: "Checkout", link: "/apps-ecommerce-checkout", parentId: "apps" },
-                        { id: 9, label: "Sellers", link: "/apps-ecommerce-sellers", parentId: "apps" },
-                        { id: 10, label: "Seller Details", link: "/apps-ecommerce-seller-details", parentId: "apps" },
-                    ]
-                },
-                {
-                    id: "appsprojects",
-                    label: "Projects",
-                    link: "/#",
-                    isChildItem: true,
-                    click: function (e: any) {
-                        e.preventDefault();
-                        setIsProjects(!isProjects);
-                    },
-                    parentId: "apps",
-                    stateVariables: isProjects,
-                    childItems: [
-                        { id: 1, label: "List", link: "/apps-projects-list", parentId: "apps", },
-                        { id: 2, label: "Overview", link: "/apps-projects-overview", parentId: "apps", },
-                        { id: 3, label: "Create Project", link: "/apps-projects-create", parentId: "apps", },
-                    ]
-                },
-                {
-                    id: "tasks",
-                    label: "Tasks",
-                    link: "/#",
-                    isChildItem: true,
-                    click: function (e: any) {
-                        e.preventDefault();
-                        setIsTasks(!isTasks);
-                    },
-                    parentId: "apps",
-                    stateVariables: isTasks,
-                    childItems: [
-                        { id: 1, label: "Kanban Board", link: "/apps-tasks-kanban", parentId: "apps", },
-                        { id: 2, label: "List View", link: "/apps-tasks-list-view", parentId: "apps", },
-                        { id: 3, label: "Task Details", link: "/apps-tasks-details", parentId: "apps", },
-                    ]
-                },
-                {
-                    id: "invoices",
-                    label: "Invoices",
-                    link: "/#",
-                    isChildItem: true,
-                    click: function (e: any) {
-                        e.preventDefault();
-                        setIsInvoices(!isInvoices);
-                    },
-                    parentId: "apps",
-                    stateVariables: isInvoices,
-                    childItems: [
-                        { id: 1, label: "List View", link: "/apps-invoices-list" },
-                        { id: 2, label: "Details", link: "/apps-invoices-details" },
-                        { id: 3, label: "Create Invoice", link: "/apps-invoices-create" },
-                    ]
-                },
-                {
-                    id: "apikey",
-                    label: "API Key",
-                    link: "/apps-api-key",
-                    parentId: "apps",
-                    // badgeName: "New",
-                    // badgeColor: "success"
-                },
+                { id: "warehouses", label: "Warehouses", link: "/inventory/warehouses", parentId: "inventory" },
+                { id: "inventoryOverview", label: "Inventory Overview", link: "/inventory/overview", parentId: "inventory" },
+                { id: "stockMovements", label: "Stock Movements", link: "/inventory/stock-movements", parentId: "inventory" },
+            ],
+        },
+        {
+            id: "orders",
+            label: "Orders",
+            icon: "ri-shopping-cart-line",
+            link: "/#",
+            click: function (e: any) {
+                e.preventDefault();
+                setIsOrders(!isOrders);
+                setIscurrentState('Orders');
+                updateIconSidebar(e);
+            },
+            stateVariables: isOrders,
+            subItems: [
+                { id: "orderList", label: "Order List", link: "/orders", parentId: "orders" },
+                { id: "createOrder", label: "Create Order", link: "/orders/create", parentId: "orders" },
             ],
         },
         {
@@ -554,16 +439,6 @@ const Navdata = () => {
             ],
         },
         {
-            id: "widgets",
-            label: "Widgets",
-            icon: "ri-honour-line",
-            link: "/widgets",
-            click: function (e: any) {
-                e.preventDefault();
-                setIscurrentState('Widgets');
-            }
-        },
-        {
             id: "forms",
             label: "Forms",
             icon: "ri-file-list-3-line",
@@ -609,57 +484,7 @@ const Navdata = () => {
                 { id: "reactdatatables", label: "React Datatables", link: "/tables-react", parentId: "tables" },
             ],
         },
-        {
-            id: "charts",
-            label: "Charts",
-            icon: "ri-pie-chart-line",
-            link: "/#",
-            click: function (e: any) {
-                e.preventDefault();
-                setIsCharts(!isCharts);
-                setIscurrentState('Charts');
-                updateIconSidebar(e);
-            },
-            stateVariables: isCharts,
-            subItems: [
-                {
-                    id: "apexcharts",
-                    label: "Apexcharts",
-                    link: "/#",
-                    parentId: "charts",
-                    isChildItem: true,
-                    click: function (e: any) {
-                        e.preventDefault();
-                        setIsApex(!isApex);
-                    },
-                    stateVariables: isApex,
-                    childItems: [
-                        { id: 1, label: "Line", link: "/charts-apex-line" },
-                        { id: 2, label: "Area", link: "/charts-apex-area" },
-                        { id: 3, label: "Column", link: "/charts-apex-column" },
-                        { id: 4, label: "Bar", link: "/charts-apex-bar" },
-                        { id: 5, label: "Mixed", link: "/charts-apex-mixed" },
-                        { id: 6, label: "Timeline", link: "/charts-apex-timeline" },
-                        { id: 7, label: "Range Area", link: "/charts-apex-range-area", parentId: "apexcharts", badgeColor: "success", badgeName: "New" },
-                        { id: 8, label: "Funnel", link: "/charts-apex-funnel", parentId: "apexcharts", badgeColor: "success", badgeName: "New" },
-                        { id: 9, label: "Candlstick", link: "/charts-apex-candlestick" },
-                        { id: 10, label: "Boxplot", link: "/charts-apex-boxplot" },
-                        { id: 11, label: "Bubble", link: "/charts-apex-bubble" },
-                        { id: 12, label: "Scatter", link: "/charts-apex-scatter" },
-                        { id: 13, label: "Heatmap", link: "/charts-apex-heatmap" },
-                        { id: 14, label: "Treemap", link: "/charts-apex-treemap" },
-                        { id: 15, label: "Pie", link: "/charts-apex-pie" },
-                        { id: 16, label: "Radialbar", link: "/charts-apex-radialbar" },
-                        { id: 17, label: "Radar", link: "/charts-apex-radar" },
-                        { id: 18, label: "Polar Area", link: "/charts-apex-polar" },
-                        { id: 19, label: "Slope", link: "/charts-apex-slope", parentId: "charts", badgeColor: "success", badgeName: "New" },
-                    ]
-                },
-                { id: "chartjs", label: "Chartjs", link: "/charts-chartjs", parentId: "charts" },
-                { id: "echarts", label: "Echarts", link: "/charts-echarts", parentId: "charts" },
-
-            ],
-        },
+        // Charts removed - demo examples not part of B1-B4
         {
             id: "icons",
             label: "Icons",
@@ -695,51 +520,6 @@ const Navdata = () => {
             stateVariables: isMaps,
             subItems: [
                 { id: "google", label: "Google", link: "/maps-google", parentId: "maps" },
-            ],
-        },
-        {
-            id: "multilevel",
-            label: "Multi Level",
-            icon: "ri-share-line",
-            link: "/#",
-            click: function (e: any) {
-                e.preventDefault();
-                setIsMultiLevel(!isMultiLevel);
-                setIscurrentState('MuliLevel');
-                updateIconSidebar(e);
-            },
-            stateVariables: isMultiLevel,
-            subItems: [
-                { id: "level1.1", label: "Level 1.1", link: "/#", parentId: "multilevel" },
-                {
-                    id: "level1.2",
-                    label: "Level 1.2",
-                    link: "/#",
-                    isChildItem: true,
-                    click: function (e: any) {
-                        e.preventDefault();
-                        setIsLevel1(!isLevel1);
-                    },
-                    stateVariables: isLevel1,
-                    childItems: [
-                        { id: 1, label: "Level 2.1", link: "/#" },
-                        {
-                            id: "level2.2",
-                            label: "Level 2.2",
-                            link: "/#",
-                            isChildItem: true,
-                            click: function (e: any) {
-                                e.preventDefault();
-                                setIsLevel2(!isLevel2);
-                            },
-                            stateVariables: isLevel2,
-                            childItems: [
-                                { id: 1, label: "Level 3.1", link: "/#" },
-                                { id: 2, label: "Level 3.2", link: "/#" },
-                            ]
-                        },
-                    ]
-                },
             ],
         },
     ];

@@ -1,7 +1,8 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Card, CardBody, CardHeader, Col, DropdownItem, DropdownMenu, DropdownToggle, UncontrolledDropdown } from 'reactstrap';
-import { projectTasks } from '../../common/data';
+// Demo data removed - using empty array
+const projectTasks: any[] = [];
 
 const MyTasks = () => {
     return (

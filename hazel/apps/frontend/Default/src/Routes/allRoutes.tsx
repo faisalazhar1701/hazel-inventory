@@ -1,44 +1,8 @@
 import React from "react";
 import { Navigate } from "react-router-dom";
 
-//Dashboard
-import DashboardAnalytics from "../pages/DashboardAnalytics";
-import DashboardCrm from "../pages/DashboardCrm";
+// Dashboard - keeping main dashboard as placeholder
 import DashboardEcommerce from "../pages/DashboardEcommerce";
-import DashboardProject from "../pages/DashboardProject";
-
-
-// //Calendar
-import Calendar from "../pages/Calendar";
-import MonthGrid from "../pages/Calendar/monthGrid";
-
-// // Project
-import ProjectList from "../pages/Projects/ProjectList";
-import ProjectOverview from "../pages/Projects/ProjectOverview";
-import CreateProject from "../pages/Projects/CreateProject";
-
-// //Task
-import TaskDetails from "../pages/Tasks/TaskDetails";
-import TaskList from "../pages/Tasks/TaskList";
-
-
-// //Invoices
-import InvoiceList from "../pages/Invoices/InvoiceList";
-import InvoiceCreate from "../pages/Invoices/InvoiceCreate";
-import InvoiceDetails from "../pages/Invoices/InvoiceDetails";
-
-
-// // //Ecommerce Pages
-import EcommerceProducts from "../pages/Ecommerce/EcommerceProducts/index";
-import EcommerceProductDetail from "../pages/Ecommerce/EcommerceProducts/EcommerceProductDetail";
-import EcommerceAddProduct from "../pages/Ecommerce/EcommerceProducts/EcommerceAddProduct";
-import EcommerceOrders from "../pages/Ecommerce/EcommerceOrders/index";
-import EcommerceOrderDetail from "../pages/Ecommerce/EcommerceOrders/EcommerceOrderDetail";
-import EcommerceCustomers from "../pages/Ecommerce/EcommerceCustomers/index";
-import EcommerceCart from "../pages/Ecommerce/EcommerceCart";
-import EcommerceCheckout from "../pages/Ecommerce/EcommerceCheckout";
-import EcommerceSellers from "../pages/Ecommerce/EcommerceSellers/index";
-import EcommerceSellerDetail from "../pages/Ecommerce/EcommerceSellers/EcommerceSellerDetail";
 
 
 // // Base Ui
@@ -73,8 +37,7 @@ import UiSwiperSlider from "../pages/AdvanceUi/UiSwiperSlider/UiSwiperSlider";
 import UiRatings from "../pages/AdvanceUi/UiRatings/UiRatings";
 import UiHighlight from "../pages/AdvanceUi/UiHighlight/UiHighlight";
 
-// // Widgets
-import Widgets from '../pages/Widgets/Index';
+// Widgets removed - not part of B1-B4
 
 // //Forms
 import BasicElements from "../pages/Forms/BasicElements/BasicElements";
@@ -136,8 +99,7 @@ import BasicPasswCreate from "../pages/AuthenticationInner/PasswordCreate/BasicP
 import CoverPasswCreate from "../pages/AuthenticationInner/PasswordCreate/CoverPasswCreate";
 import Offlinepage from "../pages/AuthenticationInner/Errors/Offlinepage";
 
-// //APi Key
-import APIKey from "../pages/APIKey/index";
+// API Key removed - not part of B1-B4
 
 // //login
 import Login from "../pages/Authentication/Login";
@@ -145,106 +107,69 @@ import ForgetPasswordPage from "../pages/Authentication/ForgetPassword";
 import Logout from "../pages/Authentication/Logout";
 import Register from "../pages/Authentication/Register";
 
-//Charts
-import LineCharts from "../pages/Charts/ApexCharts/LineCharts";
-import AreaCharts from "../pages/Charts/ApexCharts/AreaCharts";
-import ColumnCharts from "../pages/Charts/ApexCharts/ColumnCharts";
-import BarCharts from "../pages/Charts/ApexCharts/BarCharts";
-import MixedCharts from "../pages/Charts/ApexCharts/MixedCharts";
-import TimelineCharts from "../pages/Charts/ApexCharts/TimelineCharts";
-import CandlestickChart from "../pages/Charts/ApexCharts/CandlestickChart";
-import BoxplotCharts from "../pages/Charts/ApexCharts/BoxplotCharts";
-import BubbleChart from "../pages/Charts/ApexCharts/BubbleChart";
-import ScatterCharts from "../pages/Charts/ApexCharts/ScatterCharts";
-import HeatmapCharts from "../pages/Charts/ApexCharts/HeatmapCharts";
-import TreemapCharts from "../pages/Charts/ApexCharts/TreemapCharts";
-import PieCharts from "../pages/Charts/ApexCharts/PieCharts";
-import RadialbarCharts from "../pages/Charts/ApexCharts/RadialbarCharts";
-import RadarCharts from "../pages/Charts/ApexCharts/RadarCharts";
-import PolarCharts from "../pages/Charts/ApexCharts/PolarCharts";
-import ChartsJs from "../pages/Charts/ChartsJs/index";
-import Echarts from "../pages/Charts/ECharts/index";
-
-
 import PrivacyPolicy from '../pages/Pages/PrivacyPolicy';
 import TermsCondition from '../pages/Pages/TermsCondition';
 
 // // User Profile
 import UserProfile from "../pages/Authentication/user-profile";
 
-import RangeArea from "../pages/Charts/ApexCharts/RangeAreaCharts/Index";
-import FunnelChart from "../pages/Charts/ApexCharts/FunnelCharts/Index";
 import UiLink from "../pages/BaseUi/UiLinks/UiLinks";
-import Kanbanboard from "pages/Tasks/KanbanBoard";
-import SlopeCharts from "pages/Charts/ApexCharts/SlopeCharts";
+
+// Charts removed - demo examples not part of B1-B4
+
+// Products
+import ProductList from "../pages/Products/ProductList";
+import ProductDetail from "../pages/Products/ProductDetail";
+import CreateProduct from "../pages/Products/CreateProduct";
+
+// Merchandising
+import Brands from "../pages/Merchandising/Brands";
+import Collections from "../pages/Merchandising/Collections";
+import Drops from "../pages/Merchandising/Drops";
+import Styles from "../pages/Merchandising/Styles";
+
+// Inventory
+import Warehouses from "../pages/Inventory/Warehouses";
+import InventoryOverview from "../pages/Inventory/InventoryOverview";
+import StockMovements from "../pages/Inventory/StockMovements";
+
+// Orders
+import OrderList from "../pages/Orders/OrderList";
+import CreateOrder from "../pages/Orders/CreateOrder";
+import OrderDetail from "../pages/Orders/OrderDetail";
 
 
 
 const authProtectedRoutes = [
 
-  // dashboard
-  { path: "/dashboard-analytics", component: <DashboardAnalytics /> },
-  { path: "/dashboard-crm", component: <DashboardCrm /> },
+  // Dashboard
   { path: "/dashboard", component: <DashboardEcommerce /> },
   { path: "/index", component: <DashboardEcommerce /> },
-  { path: "/dashboard-projects", component: <DashboardProject /> },
 
-  // apps
-  { path: "/apps-calendar", component: <Calendar /> },
-  { path: "/apps-calendar-month-grid", component: <MonthGrid /> },
-  { path: "/apps-ecommerce-products", component: <EcommerceProducts /> },
-  { path: "/apps-ecommerce-product-details/:_id", component: <EcommerceProductDetail /> },
-  { path: "/apps-ecommerce-product-details", component: <EcommerceProductDetail /> },
-  { path: "/apps-ecommerce-add-product", component: <EcommerceAddProduct /> },
-  { path: "/apps-ecommerce-orders", component: <EcommerceOrders /> },
-  { path: "/apps-ecommerce-order-details/:id", component: <EcommerceOrderDetail /> },
-  { path: "/apps-ecommerce-customers", component: <EcommerceCustomers /> },
-  { path: "/apps-ecommerce-cart", component: <EcommerceCart /> },
-  { path: "/apps-ecommerce-checkout", component: <EcommerceCheckout /> },
-  { path: "/apps-ecommerce-sellers", component: <EcommerceSellers /> },
-  { path: "/apps-ecommerce-seller-details", component: <EcommerceSellerDetail /> },
+  // Products
+  { path: "/products", component: <ProductList /> },
+  { path: "/products/create", component: <CreateProduct /> },
+  { path: "/products/:id", component: <ProductDetail /> },
 
-  // //Projects
-  { path: "/apps-projects-list", component: <ProjectList /> },
-  { path: "/apps-projects-overview", component: <ProjectOverview /> },
-  { path: "/apps-projects-create", component: <CreateProject /> },
+  // Merchandising
+  { path: "/merchandising/brands", component: <Brands /> },
+  { path: "/merchandising/collections", component: <Collections /> },
+  { path: "/merchandising/drops", component: <Drops /> },
+  { path: "/merchandising/styles", component: <Styles /> },
 
-  // //Task
-  { path: "/apps-tasks-kanban", component: <Kanbanboard /> },
-  { path: "/apps-tasks-list-view", component: <TaskList /> },
-  { path: "/apps-tasks-details", component: <TaskDetails /> },
+  // Inventory
+  { path: "/inventory/warehouses", component: <Warehouses /> },
+  { path: "/inventory/overview", component: <InventoryOverview /> },
+  { path: "/inventory/stock-movements", component: <StockMovements /> },
 
-  // //Api Key
-  { path: "/apps-api-key", component: <APIKey /> },
+  // Orders
+  { path: "/orders", component: <OrderList /> },
+  { path: "/orders/create", component: <CreateOrder /> },
+  { path: "/orders/:id", component: <OrderDetail /> },
 
-  // //Invoices
-  { path: "/apps-invoices-list", component: <InvoiceList /> },
-  { path: "/apps-invoices-details", component: <InvoiceDetails /> },
-  { path: "/apps-invoices-create", component: <InvoiceCreate /> },
+  // Demo routes removed - not part of B1-B4
 
-  // //charts
-  { path: "/charts-apex-line", component: <LineCharts /> },
-  { path: "/charts-apex-area", component: <AreaCharts /> },
-  { path: "/charts-apex-column", component: <ColumnCharts /> },
-  { path: "/charts-apex-bar", component: <BarCharts /> },
-  { path: "/charts-apex-mixed", component: <MixedCharts /> },
-  { path: "/charts-apex-timeline", component: <TimelineCharts /> },
-  { path: "/charts-apex-range-area", component: <RangeArea /> },
-  { path: "/charts-apex-funnel", component: <FunnelChart /> },
-  { path: "/charts-apex-candlestick", component: <CandlestickChart /> },
-  { path: "/charts-apex-boxplot", component: <BoxplotCharts /> },
-  { path: "/charts-apex-bubble", component: <BubbleChart /> },
-  { path: "/charts-apex-scatter", component: <ScatterCharts /> },
-  { path: "/charts-apex-heatmap", component: <HeatmapCharts /> },
-  { path: "/charts-apex-treemap", component: <TreemapCharts /> },
-  { path: "/charts-apex-pie", component: <PieCharts /> },
-  { path: "/charts-apex-radialbar", component: <RadialbarCharts /> },
-  { path: "/charts-apex-radar", component: <RadarCharts /> },
-  { path: "/charts-apex-polar", component: <PolarCharts /> },
-  { path: "/charts-apex-slope", component: <SlopeCharts /> },
-  
-  { path: "/charts-chartjs", component: <ChartsJs /> },
-  { path: "/charts-echarts", component: <Echarts /> },
+  // Charts routes removed - demo examples not part of B1-B4
 
 
   // // Base Ui
@@ -280,8 +205,7 @@ const authProtectedRoutes = [
   { path: "/advance-ui-ratings", component: <UiRatings /> },
   { path: "/advance-ui-highlight", component: <UiHighlight /> },
 
-  // // Widgets
-  { path: "/widgets", component: <Widgets /> },
+  // Widgets removed - not part of B1-B4
 
   // // Forms
   { path: "/forms-elements", component: <BasicElements /> },

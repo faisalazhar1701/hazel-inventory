@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { Card, Col, DropdownItem, DropdownMenu, DropdownToggle, UncontrolledDropdown } from 'reactstrap';
 import { useSelector, useDispatch } from "react-redux";
 import { DealTypeCharts } from "./DashboardCrmCharts";
-import { getDialChartsData } from '../../slices/thunks';
+// Demo thunk removed - using empty function
+const getDialChartsData = (data?: any) => Promise.resolve([]);
 import { createSelector } from 'reselect';
 
 const DealType = () => {

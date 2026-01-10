@@ -4,6 +4,7 @@ import {
   Post,
   Body,
   Param,
+  Query,
   HttpCode,
   HttpStatus,
 } from '@nestjs/common';
@@ -18,11 +19,11 @@ import {
 export class InventoryController {
   constructor(private readonly inventoryService: InventoryService) {}
 
-  @Get('product-variant/:productVariantId')
+  @Get('product-variant/:variantId')
   async getInventoryByProductVariant(
-    @Param('productVariantId') productVariantId: string,
+    @Param('variantId') variantId: string,
   ) {
-    return this.inventoryService.getInventoryByProductVariant(productVariantId);
+    return this.inventoryService.getInventoryByProductVariant(variantId);
   }
 
   @Get('warehouse/:warehouseId')
@@ -46,6 +47,24 @@ export class InventoryController {
   @HttpCode(HttpStatus.OK)
   async transferInventory(@Body() transferInventoryDto: TransferInventoryDto) {
     return this.inventoryService.transferInventory(transferInventoryDto);
+  }
+
+  @Get('stock-movements')
+  async getStockMovements(
+    @Query('productVariantId') productVariantId?: string,
+    @Query('warehouseId') warehouseId?: string,
+  ) {
+    return this.inventoryService.getStockMovements(productVariantId, warehouseId);
+  }
+
+  @Get('stock-movements/product-variant/:productVariantId')
+  async getStockMovementsByVariant(@Param('productVariantId') productVariantId: string) {
+    return this.inventoryService.getStockMovements(productVariantId);
+  }
+
+  @Get('stock-movements/warehouse/:warehouseId')
+  async getStockMovementsByWarehouse(@Param('warehouseId') warehouseId: string) {
+    return this.inventoryService.getStockMovements(undefined, warehouseId);
   }
 }
 

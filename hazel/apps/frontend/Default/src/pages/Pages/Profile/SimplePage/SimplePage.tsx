@@ -24,7 +24,9 @@ import smallImage6 from '../../../../assets/images/small/img-6.jpg';
 import smallImage7 from '../../../../assets/images/small/img-7.jpg';
 import smallImage9 from '../../../../assets/images/small/img-9.jpg';
 
-import { projects, documents } from '../../../../common/data';
+// Demo data removed - using empty arrays instead
+const projects: any[] = [];
+const documents: any[] = [];
 
 const SimplePage = () => {
     document.title = "Profile | Hazel Inventory";
@@ -1891,7 +1893,7 @@ const SimplePage = () => {
                                                                                         Members :</h5>
                                                                                 </div>
                                                                                 <div className="avatar-group">
-                                                                                    {(item.member || []).map((subitem, key) => (
+                                                                                    {(item.member || []).map((subitem: any, key: number) => (
                                                                                         <div className="avatar-group-item" key={key}>
                                                                                             <div className="avatar-xs">
                                                                                                 <img src={subitem.img} alt="" className="rounded-circle img-fluid" />
@@ -1899,7 +1901,7 @@ const SimplePage = () => {
                                                                                         </div>
                                                                                     ))}
 
-                                                                                    {(item.memberName || []).map((element, key) => (
+                                                                                    {(item.memberName || []).map((element: any, key: number) => (
                                                                                         <div className="avatar-group-item" key={key}>
                                                                                             <div className="avatar-xs">
                                                                                                 <div

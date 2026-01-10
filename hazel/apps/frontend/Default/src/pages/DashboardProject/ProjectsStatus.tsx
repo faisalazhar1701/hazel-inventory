@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardBody, CardHeader, Col, DropdownItem, DropdownMenu, DropdownToggle, UncontrolledDropdown } from 'reactstrap';
 import { useSelector, useDispatch } from "react-redux";
 import { PrjectsStatusCharts } from './DashboardProjectCharts';
-import { getProjectStatusChartsData } from '../../slices/thunks';
+// Demo thunk removed - using empty function
+const getProjectStatusChartsData = (data?: any) => Promise.resolve([]);
 import { createSelector } from 'reselect';
 
 const ProjectsStatus = () => {

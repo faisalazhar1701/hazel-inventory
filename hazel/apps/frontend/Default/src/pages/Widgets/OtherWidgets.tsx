@@ -5,7 +5,8 @@ import { Link } from 'react-router-dom';
 //Import Icons
 import FeatherIcon from "feather-icons-react";
 
-import { otherWidgets2 } from "../../common/data/index";
+// Demo data removed - using empty array
+const otherWidgets2: any[] = [];
 
 // Import Images
 import illustarator1 from "../../assets/images/user-illustarator-1.png";

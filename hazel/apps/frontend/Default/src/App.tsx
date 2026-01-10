@@ -22,11 +22,7 @@ import Route from './Routes';
 // Import Firebase Configuration file
 // import { initFirebaseBackend } from "./helpers/firebase_helper";
 
-// Fake Backend - DISABLED
-// import fakeBackend from "./helpers/AuthType/fakeBackend";
-
-// Activating fake backend - DISABLED (mock data removed)
-// fakeBackend();
+// Fake Backend removed - using real API only
 
 // const firebaseConfig = {
 //   apiKey: process.env.REACT_APP_APIKEY,

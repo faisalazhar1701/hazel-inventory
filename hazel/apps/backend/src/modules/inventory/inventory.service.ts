@@ -330,8 +330,7 @@ export class InventoryService {
           select: {
             id: true,
             sku: true,
-            color: true,
-            size: true,
+            attributes: true,
             product: {
               select: {
                 id: true,
@@ -369,8 +368,7 @@ export class InventoryService {
           select: {
             id: true,
             sku: true,
-            color: true,
-            size: true,
+            attributes: true,
             product: {
               select: {
                 id: true,
@@ -391,6 +389,56 @@ export class InventoryService {
     });
 
     return inventoryItems;
+  }
+
+  async getStockMovements(productVariantId?: string, warehouseId?: string) {
+    const where: any = {};
+    
+    if (productVariantId || warehouseId) {
+      where.inventoryItem = {};
+      if (productVariantId) {
+        where.inventoryItem.productVariantId = productVariantId;
+      }
+      if (warehouseId) {
+        where.inventoryItem.warehouseId = warehouseId;
+      }
+    }
+
+    const movements = await this.prisma.inventoryLedger.findMany({
+      where,
+      include: {
+        inventoryItem: {
+          include: {
+            productVariant: {
+              select: {
+                id: true,
+                sku: true,
+                product: {
+                  select: {
+                    id: true,
+                    name: true,
+                    sku: true,
+                  },
+                },
+              },
+            },
+            warehouse: {
+              select: {
+                id: true,
+                name: true,
+                location: true,
+              },
+            },
+          },
+        },
+      },
+      orderBy: {
+        createdAt: 'desc',
+      },
+      take: 1000, // Limit to recent 1000 movements
+    });
+
+    return movements;
   }
 }
 

@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardHeader, Col, DropdownMenu, DropdownToggle, UncontrolledDropdown, DropdownItem } from 'reactstrap';
 import { useSelector, useDispatch } from "react-redux";
 import { AudiencesSessionsCharts } from './DashboardAnalyticsCharts';
-import { getAudiencesSessionsChartsData } from "../../slices/thunks";
+// Demo thunk removed - using empty function
+const getAudiencesSessionsChartsData = (data?: any) => Promise.resolve([]);
 import { createSelector } from 'reselect';
 
 const AudiencesSessions = () => {

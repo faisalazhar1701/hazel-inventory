@@ -1,7 +1,8 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Card, CardBody, CardHeader, Col, DropdownItem, DropdownMenu, DropdownToggle, Row, UncontrolledDropdown } from 'reactstrap';
-import { activities } from "../../common/data";
+// Demo data removed - using empty array
+const activities: any[] = [];
 
 const UpcomingActivities = () => {
     return (
@@ -41,7 +42,7 @@ const UpcomingActivities = () => {
                                         </div>
                                         <div className="col-sm-auto">
                                             <div className="avatar-group">
-                                                {(item.subItem || []).map((subItem, key) => (
+                                                {(item.subItem || []).map((subItem: any, key: number) => (
                                                     <React.Fragment key={key}>
                                                         <div className="avatar-group-item">
                                                             <Link to="#" className="d-inline-block" data-bs-toggle="tooltip" data-bs-placement="top" title="" data-bs-original-title="Stine Nielsen">

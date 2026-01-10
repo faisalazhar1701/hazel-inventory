@@ -13,12 +13,11 @@ import moment from "moment";
 import { useSelector, useDispatch } from "react-redux";
 import { Col, Modal, ModalBody, Row, Label, Input, Button, ModalHeader, FormFeedback, Form } from 'reactstrap';
 
-import {
-  getTaskList,
-  addNewTask,
-  updateTask,
-  deleteTask,
-} from "../../../slices/thunks";
+// Demo thunks removed - using empty functions
+const getTaskList = (data?: any) => Promise.resolve([]);
+const addNewTask = (data?: any) => Promise.resolve();
+const updateTask = (data?: any) => Promise.resolve();
+const deleteTask = (data?: any) => Promise.resolve();
 
 import {
   OrdersId,

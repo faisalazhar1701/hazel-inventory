@@ -1,26 +1,8 @@
-import React from 'react';
-import { Container, Row } from 'reactstrap';
-import BreadCrumb from '../../../Components/Common/BreadCrumb';
-import AllTasks from './AllTasks';
-import Widgets from './Widgets';
-
+import React from "react";
+import PlaceholderPage from "../../PlaceholderPage";
 
 const TaskList = () => {
-    document.title="Tasks List | Hazel Inventory";
-    return (
-        <React.Fragment>
-            <div className="page-content">
-            
-                <Container fluid>
-                    <BreadCrumb title="Tasks List" pageTitle="Tasks" />
-                    <Row>
-                        <Widgets />
-                    </Row>
-                    <AllTasks />
-                </Container>
-            </div>
-        </React.Fragment>
-    );
+  return <PlaceholderPage title="Task List" description="Task list page will be implemented here." />;
 };
 
 export default TaskList;

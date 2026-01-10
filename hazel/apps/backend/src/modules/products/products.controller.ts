@@ -4,10 +4,19 @@ import {
   Post,
   Body,
   Param,
+  Patch,
   HttpCode,
   HttpStatus,
 } from '@nestjs/common';
-import { ProductsService, CreateProductDto, CreateProductVariantDto } from './products.service';
+import {
+  ProductsService,
+  CreateProductDto,
+  CreateProductVariantDto,
+  CreateBomDto,
+  UpdateLifecycleStatusDto,
+  AssignProductRelationsDto,
+  ProductLifecycleStatus,
+} from './products.service';
 
 @Controller('products')
 export class ProductsController {
@@ -45,5 +54,37 @@ export class ProductsController {
   async listVariantsByProduct(@Param('productId') productId: string) {
     return this.productsService.listVariantsByProduct(productId);
   }
-}
 
+  @Post(':variantId/bom')
+  @HttpCode(HttpStatus.CREATED)
+  async createBom(
+    @Param('variantId') variantId: string,
+    @Body() createBomDto: Omit<CreateBomDto, 'parentVariantId'>,
+  ) {
+    return this.productsService.createBom({
+      ...createBomDto,
+      parentVariantId: variantId,
+    });
+  }
+
+  @Patch(':id/lifecycle')
+  @HttpCode(HttpStatus.OK)
+  async updateProductLifecycleStatus(
+    @Param('id') id: string,
+    @Body() updateLifecycleDto: UpdateLifecycleStatusDto,
+  ) {
+    return this.productsService.updateProductLifecycleStatus(
+      id,
+      updateLifecycleDto.lifecycleStatus,
+    );
+  }
+
+  @Patch(':id/assign')
+  @HttpCode(HttpStatus.OK)
+  async assignProductRelations(
+    @Param('id') id: string,
+    @Body() assignDto: AssignProductRelationsDto,
+  ) {
+    return this.productsService.assignProductRelations(id, assignDto);
+  }
+}

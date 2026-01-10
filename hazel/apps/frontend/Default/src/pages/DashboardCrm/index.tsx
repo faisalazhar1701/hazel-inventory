@@ -1,43 +1,8 @@
-import React from 'react';
-import { Container, Row } from 'reactstrap';
-import BreadCrumb from '../../Components/Common/BreadCrumb';
-import BalanceOverview from './BalanceOverview';
-import ClosingDeals from './ClosingDeals';
-import DealsStatus from './DealsStatus';
-import DealType from './DealType';
-import MyTasks from './MyTasks';
-import SalesForecast from './SalesForecast';
-import UpcomingActivities from './UpcomingActivities';
-import Widgets from './Widgets';
-
+import React from "react";
+import PlaceholderPage from "../PlaceholderPage";
 
 const DashboardCrm = () => {
-    document.title="CRM | Hazel Inventory";
-    return (
-        <React.Fragment>
-            <div className="page-content">
-                <Container fluid>  
-                    <BreadCrumb title="CRM" pageTitle="Dashboards" />
-                    <Row>
-                        <Widgets />
-                    </Row>
-                    <Row>
-                        <SalesForecast />
-                        <DealType />
-                        <BalanceOverview />
-                    </Row>
-                    <Row>
-                        <DealsStatus />
-                        <MyTasks />
-                    </Row>
-                    <Row>
-                        <UpcomingActivities />
-                        <ClosingDeals />
-                    </Row>
-                </Container>
-            </div>
-        </React.Fragment>
-    );
+  return <PlaceholderPage title="CRM Dashboard" description="CRM dashboard will be implemented here." />;
 };
 
 export default DashboardCrm;

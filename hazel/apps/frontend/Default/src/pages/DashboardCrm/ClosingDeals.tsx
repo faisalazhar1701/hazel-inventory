@@ -1,7 +1,8 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Card, CardBody, CardHeader, Col } from 'reactstrap';
-import { closingDeals } from "../../common/data";
+// Demo data removed - using empty array
+const closingDeals: any[] = [];
 
 const ClosingDeals = () => {
     return (

@@ -13,7 +13,8 @@ import gitbox from "../../assets/images/giftbox.png";
 
 //SimpleBar
 import SimpleBar from "simplebar-react";
-import { topCategories } from "../../common/data";
+// Demo data removed - using empty array
+const topCategories: any[] = [];
 
 const RecentActivity = (props:any) => {
   return (

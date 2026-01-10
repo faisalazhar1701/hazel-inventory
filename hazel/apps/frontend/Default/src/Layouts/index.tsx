@@ -1,5 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import PropTypes from "prop-types";
+import { ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 import withRouter from '../Components/Common/withRouter';
 
 //import Components
@@ -148,6 +150,7 @@ const Layout = (props : any) => {
                 </div>
             </div>
             <RightSidebar />
+            <ToastContainer position="top-right" autoClose={3000} />
         </React.Fragment>
 
     );

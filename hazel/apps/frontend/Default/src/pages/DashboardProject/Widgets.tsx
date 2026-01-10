@@ -1,5 +1,6 @@
 import React from 'react';
-import { projectsWidgets } from '../../common/data';
+// Demo data removed - using empty array
+const projectsWidgets: any[] = [];
 import CountUp from "react-countup";
 
 //Import Icons

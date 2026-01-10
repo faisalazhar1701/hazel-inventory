@@ -13,7 +13,9 @@ import product10 from "../../assets/images/products/img-10.png";
 import avatar2 from "../../assets/images/users/avatar-2.jpg";
 import avatar3 from "../../assets/images/users/avatar-3.jpg";
 
-import { widgetsActivities, widgetsTasks } from "../../common/data/index";
+// Demo data removed - using empty arrays
+const widgetsActivities: any[] = [];
+const widgetsTasks: any[] = [];
 import { OtherWidgetsCharts } from './WidgetsCharts';
 
 const UpcomingActivity = () => {
@@ -91,7 +93,7 @@ const UpcomingActivity = () => {
                                             </Col>
                                             <Col className="col-sm-auto">
                                                 <div className="avatar-group">
-                                                    {item.subItem.map((item, key) => (
+                                                    {item.subItem.map((item: any, key: number) => (
                                                         <React.Fragment key={key}>
                                                             {item.img ? (<div className="avatar-group-item">
                                                                 <Link to="#" className="d-inline-block" 
