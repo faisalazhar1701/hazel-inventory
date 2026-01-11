@@ -145,6 +145,11 @@ import CustomerDetail from "../pages/Customers/CustomerDetail";
 import ForecastList from "../pages/Forecast/ForecastList";
 import ReplenishmentList from "../pages/Replenishment/ReplenishmentList";
 
+// Finance & Accounting
+import FinanceOverview from "../pages/Finance/FinanceOverview";
+import TransactionsList from "../pages/Finance/TransactionsList";
+import InventoryValuation from "../pages/Finance/InventoryValuation";
+
 
 
 const authProtectedRoutes = [
@@ -180,6 +185,11 @@ const authProtectedRoutes = [
   // Forecasting
   { path: "/forecast", component: <ForecastList /> },
   { path: "/replenishment", component: <ReplenishmentList /> },
+
+  // Finance & Accounting
+  { path: "/finance", component: <FinanceOverview /> },
+  { path: "/finance/transactions", component: <TransactionsList /> },
+  { path: "/finance/inventory-valuation", component: <InventoryValuation /> },
 
   // Demo routes removed - not part of B1-B4
 

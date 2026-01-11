@@ -29,6 +29,7 @@ import * as Yup from 'yup';
 import classNames from 'classnames';
 import BreadCrumb from '../../../Components/Common/BreadCrumb';
 import { ordersAPI, Order, OrderStatus, OrderChannel, ReturnOrderDto, InventoryImpact } from '../../../api/orders';
+import { financeAPI, OrderSummary } from '../../../api/finance';
 import { toast } from 'react-toastify';
 import FeatherIcon from 'feather-icons-react';
 import { Link } from 'react-router-dom';
@@ -45,6 +46,8 @@ const OrderDetail: React.FC = () => {
   const [warehouses, setWarehouses] = useState<any[]>([]);
   const [inventoryImpact, setInventoryImpact] = useState<InventoryImpact | null>(null);
   const [loadingImpact, setLoadingImpact] = useState(false);
+  const [orderSummary, setOrderSummary] = useState<OrderSummary | null>(null);
+  const [loadingSummary, setLoadingSummary] = useState(false);
 
   useEffect(() => {
     if (id) {
@@ -56,6 +59,10 @@ const OrderDetail: React.FC = () => {
   useEffect(() => {
     if (order) {
       loadWarehouses();
+      // Load financial summary if order is FULFILLED or RETURNED
+      if (order.status === OrderStatus.FULFILLED || order.status === OrderStatus.RETURNED) {
+        loadOrderSummary();
+      }
     }
   }, [order]);
 
@@ -100,6 +107,20 @@ const OrderDetail: React.FC = () => {
       // Don't show error toast - this is optional data
     } finally {
       setLoadingImpact(false);
+    }
+  };
+
+  const loadOrderSummary = async () => {
+    if (!id) return;
+    try {
+      setLoadingSummary(true);
+      const summary = await financeAPI.getOrderSummary(id);
+      setOrderSummary(summary);
+    } catch (err) {
+      console.error('Failed to load order financial summary:', err);
+      // Don't show error toast - this is optional data
+    } finally {
+      setLoadingSummary(false);
     }
   };
 
@@ -218,6 +239,7 @@ const OrderDetail: React.FC = () => {
     OrderStatus.DELIVERED,
     OrderStatus.COMPLETED,
   ].includes(order.status);
+  const showFinancials = order?.status && [OrderStatus.FULFILLED, OrderStatus.RETURNED].includes(order.status);
 
   const returnValidation = useFormik({
     enableReinitialize: true,
@@ -405,6 +427,16 @@ const OrderDetail: React.FC = () => {
                         Inventory Impact
                       </NavLink>
                     </NavItem>
+                    {showFinancials && (
+                      <NavItem>
+                        <NavLink
+                          className={classNames({ active: activeTab === '5' })}
+                          onClick={() => setActiveTab('5')}
+                        >
+                          Financials
+                        </NavLink>
+                      </NavItem>
+                    )}
                   </Nav>
 
                   <TabContent activeTab={activeTab} className="p-4">
@@ -781,6 +813,80 @@ const OrderDetail: React.FC = () => {
                         </div>
                       )}
                     </TabPane>
+
+                    {showFinancials && (
+                      <TabPane tabId="5">
+                        {loadingSummary ? (
+                          <div className="text-center py-4">
+                            <Spinner color="primary" />
+                            <p className="mt-2">Loading financial summary...</p>
+                          </div>
+                        ) : orderSummary ? (
+                          <Row>
+                            <Col md={6}>
+                              <Card className="border border-success">
+                                <CardBody>
+                                  <h6 className="text-muted mb-2">Revenue</h6>
+                                  <h3 className="mb-0 text-success">
+                                    {new Intl.NumberFormat('en-US', {
+                                      style: 'currency',
+                                      currency: orderSummary.currency,
+                                    }).format(orderSummary.revenue)}
+                                  </h3>
+                                  <small className="text-muted">Total order value</small>
+                                </CardBody>
+                              </Card>
+                            </Col>
+                            <Col md={6}>
+                              <Card className="border border-warning">
+                                <CardBody>
+                                  <h6 className="text-muted mb-2">Cost</h6>
+                                  <h3 className="mb-0 text-warning">
+                                    {new Intl.NumberFormat('en-US', {
+                                      style: 'currency',
+                                      currency: orderSummary.currency,
+                                    }).format(orderSummary.cost)}
+                                  </h3>
+                                  <small className="text-muted">Cost of goods sold</small>
+                                </CardBody>
+                              </Card>
+                            </Col>
+                            <Col md={6} className="mt-3">
+                              <Card className={`border ${orderSummary.margin >= 0 ? 'border-primary' : 'border-danger'}`}>
+                                <CardBody>
+                                  <h6 className="text-muted mb-2">Margin</h6>
+                                  <h3 className={`mb-0 ${orderSummary.margin >= 0 ? 'text-primary' : 'text-danger'}`}>
+                                    {new Intl.NumberFormat('en-US', {
+                                      style: 'currency',
+                                      currency: orderSummary.currency,
+                                    }).format(orderSummary.margin)}
+                                  </h3>
+                                  <small className="text-muted">Revenue - Cost</small>
+                                </CardBody>
+                              </Card>
+                            </Col>
+                            <Col md={6} className="mt-3">
+                              <Card className={`border ${orderSummary.marginPercent >= 0 ? 'border-info' : 'border-danger'}`}>
+                                <CardBody>
+                                  <h6 className="text-muted mb-2">Margin %</h6>
+                                  <h3 className={`mb-0 ${orderSummary.marginPercent >= 0 ? 'text-info' : 'text-danger'}`}>
+                                    {orderSummary.marginPercent.toFixed(2)}%
+                                  </h3>
+                                  <small className="text-muted">Profit margin percentage</small>
+                                </CardBody>
+                              </Card>
+                            </Col>
+                          </Row>
+                        ) : (
+                          <div className="text-center py-4">
+                            <p className="text-muted">Unable to load financial summary</p>
+                            <Button color="primary" size="sm" onClick={loadOrderSummary}>
+                              Retry
+                            </Button>
+                          </div>
+                        )}
+                      </TabPane>
+                    )}
                   </TabContent>
                 </CardBody>
               </Card>

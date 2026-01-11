@@ -11,6 +11,7 @@ const Navdata = () => {
     const [isOrders, setIsOrders] = useState<boolean>(false);
     const [isCRM, setIsCRM] = useState<boolean>(false);
     const [isIntelligence, setIsIntelligence] = useState<boolean>(false);
+    const [isFinance, setIsFinance] = useState<boolean>(false);
     const [isBaseUi, setIsBaseUi] = useState<boolean>(false);
     const [isAdvanceUi, setIsAdvanceUi] = useState<boolean>(false);
     const [isForms, setIsForms] = useState<boolean>(false);
@@ -207,6 +208,24 @@ const Navdata = () => {
             subItems: [
                 { id: "forecast", label: "Demand Forecasting", link: "/forecast", parentId: "intelligence" },
                 { id: "replenishment", label: "Replenishment", link: "/replenishment", parentId: "intelligence" },
+            ],
+        },
+        {
+            id: "finance",
+            label: "Finance & Accounting",
+            icon: "ri-money-dollar-circle-line",
+            link: "/#",
+            click: function (e: any) {
+                e.preventDefault();
+                setIsFinance(!isFinance);
+                setIscurrentState('Finance & Accounting');
+                updateIconSidebar(e);
+            },
+            stateVariables: isFinance,
+            subItems: [
+                { id: "financeOverview", label: "Overview", link: "/finance", parentId: "finance" },
+                { id: "financeTransactions", label: "Transactions", link: "/finance/transactions", parentId: "finance" },
+                { id: "financeValuation", label: "Inventory Valuation", link: "/finance/inventory-valuation", parentId: "finance" },
             ],
         },
         {

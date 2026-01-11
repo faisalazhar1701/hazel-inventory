@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { InventoryService } from '../inventory/inventory.service';
+import { FinanceService } from '../finance/finance.service';
 import {
   Order,
   OrderItem,
@@ -94,6 +95,7 @@ export class OrdersService {
   constructor(
     private prisma: PrismaService,
     private inventoryService: InventoryService,
+    private financeService: FinanceService,
   ) {}
 
   private async generateUniqueOrderNumber(): Promise<string> {
@@ -792,6 +794,17 @@ export class OrdersService {
       });
 
       this.logger.log(`Order ${order.orderNumber} fulfilled. Status: FULFILLED`);
+      
+      // Record financial transactions for order fulfillment
+      // Run outside transaction to avoid locking issues
+      // If finance fails, order is still fulfilled (idempotent - finance checks for existing transactions)
+      this.financeService.recordOrderFulfillment(id).catch((error) => {
+        this.logger.error(
+          `Failed to record financial transactions for order ${id}: ${error.message}`,
+        );
+        // Don't throw - order fulfillment should succeed even if finance fails
+      });
+
       return updatedOrder;
     });
   }
@@ -992,6 +1005,16 @@ export class OrdersService {
     const totalOrdered = order.orderItems.reduce((sum, item) => sum + item.quantity, 0);
     const isFullReturn = totalReturned >= totalOrdered;
 
+    // Calculate return amount for finance reversal
+    const returnAmount = returnData.items.reduce((sum, item) => {
+      const orderItem = orderItemMap.get(item.orderItemId);
+      if (orderItem) {
+        const itemTotal = (orderItem.unitPrice * item.quantity);
+        return sum + itemTotal;
+      }
+      return sum;
+    }, 0);
+
     // Update order status
     const newStatus = isFullReturn ? OrderStatus.RETURNED : OrderStatus.SHIPPED;
     const updatedOrder = await this.prisma.order.update({
@@ -1004,6 +1027,18 @@ export class OrdersService {
     this.logger.log(
       `Order return processed: ${order.orderNumber}. Status: ${newStatus}. Items returned: ${returnData.items.length}`,
     );
+
+    // Reverse financial transactions for order return
+    // Run asynchronously - if finance fails, return still succeeds
+    // Finance service checks for existing transactions and handles partial returns
+    if (isFullReturn || returnAmount > 0) {
+      this.financeService.reverseOrderFulfillment(id, returnAmount).catch((error) => {
+        this.logger.error(
+          `Failed to reverse financial transactions for order ${id}: ${error.message}`,
+        );
+        // Don't throw - order return should succeed even if finance reversal fails
+      });
+    }
 
     return updatedOrder;
   }

@@ -265,3 +265,32 @@ model ReplenishmentSuggestion {
   @@index([recommendedDate])
   @@map("replenishment_suggestions")
 }
+
+model ChartOfAccount {
+  id        String                @id @default(uuid())
+  code      String                @unique // e.g. REVENUE, COGS, INVENTORY
+  name      String
+  type      String                // ASSET, LIABILITY, EQUITY, REVENUE, EXPENSE
+  createdAt DateTime              @default(now())
+  debitTransactions  FinancialTransaction[] @relation("DebitAccount")
+  creditTransactions FinancialTransaction[] @relation("CreditAccount")
+
+  @@map("chart_of_accounts")
+}
+
+model FinancialTransaction {
+  id              String          @id @default(uuid())
+  referenceType   String          // ORDER, INVENTORY
+  referenceId     String          // orderId or inventoryLedgerId (logical reference, not FK)
+  debitAccountId  String
+  creditAccountId String
+  amount          Float
+  currency        String          @default("USD")
+  createdAt       DateTime        @default(now())
+  debitAccount    ChartOfAccount  @relation("DebitAccount", fields: [debitAccountId], references: [id], onDelete: Restrict)
+  creditAccount   ChartOfAccount  @relation("CreditAccount", fields: [creditAccountId], references: [id], onDelete: Restrict)
+
+  @@index([referenceType, referenceId])
+  @@index([createdAt])
+  @@map("financial_transactions")
+}
