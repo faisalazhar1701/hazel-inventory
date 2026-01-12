@@ -167,8 +167,8 @@ import IntegrationsPage from "../pages/Integrations";
 
 const authProtectedRoutes = [
 
-  // Dashboard
-  { path: "/dashboard", component: <DashboardEcommerce /> },
+  // Dashboard - redirect to executive dashboard
+  { path: "/dashboard", component: <Navigate to="/dashboards/executive" replace /> },
   { path: "/index", component: <DashboardEcommerce /> },
 
   // Products
@@ -303,9 +303,9 @@ const authProtectedRoutes = [
   {
     path: "/",
     exact: true,
-    component: <Navigate to="/dashboard" />,
+    component: <Navigate to="/dashboards/executive" />,
   },
-  { path: "*", component: <Navigate to="/dashboard" /> },
+  { path: "*", component: <Navigate to="/dashboards/executive" /> },
 ];
 
 const publicRoutes = [

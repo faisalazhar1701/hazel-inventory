@@ -210,132 +210,178 @@ export class DashboardService {
    * Sales and CRM metrics
    */
   async getSalesDashboard(filters?: DashboardFilters): Promise<SalesDashboard> {
-    const dateFilter = this.buildDateFilter(filters?.startDate, filters?.endDate);
-    
-    const orderWhere: any = { ...dateFilter };
-    if (filters?.channel) {
-      orderWhere.channel = filters.channel;
-    }
-
-    // Get orders by channel using analytics service
-    const ordersByChannel = await this.analyticsService.getOrdersByChannel({
-      channel: filters?.channel,
-      startDate: filters?.startDate,
-      endDate: filters?.endDate,
-    });
-
-    // Calculate revenue by channel
-    const revenueByChannel = ordersByChannel.map(item => ({
-      channel: item.channel,
-      revenue: item.revenue,
-      percentage: 0, // Will calculate after total
-    }));
-
-    const totalRevenue = revenueByChannel.reduce((sum, item) => sum + item.revenue, 0);
-    revenueByChannel.forEach(item => {
-      item.percentage = totalRevenue > 0 ? (item.revenue / totalRevenue) * 100 : 0;
-    });
-
-    // Get top customers by revenue
-    const orders = await this.prisma.order.findMany({
-      where: {
-        ...orderWhere,
-        customerId: { not: null },
-      },
-      include: {
-        customer: {
-          select: {
-            id: true,
-            companyName: true,
-          },
-        },
-      },
-    });
-
-    // Calculate customer revenue
-    const customerRevenueMap = new Map<string, { companyName: string; revenue: number; orderCount: number }>();
-    
-    for (const order of orders) {
-      if (order.customerId && order.customer) {
-        const existing = customerRevenueMap.get(order.customerId) || {
-          companyName: order.customer.companyName,
-          revenue: 0,
-          orderCount: 0,
-        };
-        existing.revenue += order.totalAmount;
-        existing.orderCount += 1;
-        customerRevenueMap.set(order.customerId, existing);
+    try {
+      const dateFilter = this.buildDateFilter(filters?.startDate, filters?.endDate);
+      
+      const orderWhere: any = { ...dateFilter };
+      if (filters?.channel) {
+        orderWhere.channel = filters.channel;
       }
-    }
 
-    // Try to get revenue from finance transactions
-    const orderIds = orders.map(o => o.id);
-    const revenueTransactions = await this.prisma.financialTransaction.findMany({
-      where: {
-        referenceType: 'ORDER',
-        referenceId: { in: orderIds },
-        creditAccount: {
-          code: 'REVENUE',
-        },
-      },
-    });
+      // Get orders by channel using analytics service - safe default if fails
+      let ordersByChannel: Array<{ channel: string; orders: number; revenue: number }> = [];
+      try {
+        const channelData = await this.analyticsService.getOrdersByChannel({
+          channel: filters?.channel,
+          startDate: filters?.startDate,
+          endDate: filters?.endDate,
+        });
+        ordersByChannel = channelData.map(item => ({
+          channel: item.channel,
+          orders: item.orders,
+          revenue: item.revenue,
+        }));
+      } catch (error) {
+        this.logger.warn(`Failed to get orders by channel: ${error.message}`);
+        ordersByChannel = [];
+      }
 
-    const revenueByOrder = new Map<string, number>();
-    for (const transaction of revenueTransactions) {
-      const existing = revenueByOrder.get(transaction.referenceId) || 0;
-      revenueByOrder.set(transaction.referenceId, existing + transaction.amount);
-    }
+      // Calculate revenue by channel - safe defaults
+      const revenueByChannel = ordersByChannel.map(item => ({
+        channel: item.channel,
+        revenue: item.revenue || 0,
+        percentage: 0, // Will calculate after total
+      }));
 
-    // Update customer revenue with transaction data if available
-    for (const order of orders) {
-      if (order.customerId) {
-        const transactionRevenue = revenueByOrder.get(order.id);
-        if (transactionRevenue) {
-          const customerData = customerRevenueMap.get(order.customerId);
-          if (customerData) {
-            customerData.revenue = (customerData.revenue - order.totalAmount) + transactionRevenue;
+      const totalRevenue = revenueByChannel.reduce((sum, item) => sum + (item.revenue || 0), 0);
+      revenueByChannel.forEach(item => {
+        item.percentage = totalRevenue > 0 ? ((item.revenue || 0) / totalRevenue) * 100 : 0;
+      });
+
+      // Get top customers by revenue - safe default if fails
+      let orders: any[] = [];
+      try {
+        orders = await this.prisma.order.findMany({
+          where: {
+            ...orderWhere,
+            customerId: { not: null },
+          },
+          include: {
+            customer: {
+              select: {
+                id: true,
+                companyName: true,
+              },
+            },
+          },
+        });
+      } catch (error) {
+        this.logger.warn(`Failed to get orders: ${error.message}`);
+        orders = [];
+      }
+
+      // Calculate customer revenue - safe defaults
+      const customerRevenueMap = new Map<string, { companyName: string; revenue: number; orderCount: number }>();
+      
+      for (const order of orders) {
+        if (order.customerId && order.customer) {
+          const existing = customerRevenueMap.get(order.customerId) || {
+            companyName: order.customer.companyName || 'Unknown',
+            revenue: 0,
+            orderCount: 0,
+          };
+          existing.revenue += order.totalAmount || 0;
+          existing.orderCount += 1;
+          customerRevenueMap.set(order.customerId, existing);
+        }
+      }
+
+      // Try to get revenue from finance transactions - safe default if fails
+      let revenueTransactions: any[] = [];
+      try {
+        const orderIds = orders.map(o => o.id).filter(Boolean);
+        if (orderIds.length > 0) {
+          revenueTransactions = await this.prisma.financialTransaction.findMany({
+            where: {
+              referenceType: 'ORDER',
+              referenceId: { in: orderIds },
+              creditAccount: {
+                code: 'REVENUE',
+              },
+            },
+          });
+        }
+      } catch (error) {
+        this.logger.warn(`Failed to get finance transactions: ${error.message}`);
+        revenueTransactions = [];
+      }
+
+      const revenueByOrder = new Map<string, number>();
+      for (const transaction of revenueTransactions) {
+        if (transaction.referenceId && transaction.amount) {
+          const existing = revenueByOrder.get(transaction.referenceId) || 0;
+          revenueByOrder.set(transaction.referenceId, existing + transaction.amount);
+        }
+      }
+
+      // Update customer revenue with transaction data if available
+      for (const order of orders) {
+        if (order.customerId) {
+          const transactionRevenue = revenueByOrder.get(order.id);
+          if (transactionRevenue) {
+            const customerData = customerRevenueMap.get(order.customerId);
+            if (customerData) {
+              customerData.revenue = (customerData.revenue - (order.totalAmount || 0)) + transactionRevenue;
+            }
           }
         }
       }
+
+      const topCustomers = Array.from(customerRevenueMap.entries())
+        .map(([customerId, data]) => ({
+          customerId,
+          companyName: data.companyName || 'Unknown',
+          revenue: data.revenue || 0,
+          orderCount: data.orderCount || 0,
+        }))
+        .sort((a, b) => (b.revenue || 0) - (a.revenue || 0))
+        .slice(0, 10); // Top 10
+
+      // Calculate order conversion rate (confirmed / total) - safe defaults
+      let totalOrders = 0;
+      let confirmedOrders = 0;
+      try {
+        totalOrders = await this.prisma.order.count({
+          where: orderWhere,
+        });
+        confirmedOrders = await this.prisma.order.count({
+          where: {
+            ...orderWhere,
+            status: { in: [OrderStatus.CONFIRMED, OrderStatus.ALLOCATED, OrderStatus.SHIPPED, OrderStatus.DELIVERED, OrderStatus.COMPLETED, OrderStatus.FULFILLED] },
+          },
+        });
+      } catch (error) {
+        this.logger.warn(`Failed to count orders: ${error.message}`);
+        totalOrders = 0;
+        confirmedOrders = 0;
+      }
+      const orderConversionRate = totalOrders > 0 ? (confirmedOrders / totalOrders) * 100 : 0;
+
+      // Safe currency default
+      const currency = orders.length > 0 && orders[0].currency ? orders[0].currency : 'USD';
+
+      return {
+        ordersByChannel,
+        revenueByChannel,
+        topCustomers,
+        orderConversionRate,
+        totalOrders,
+        totalRevenue: totalRevenue || 0,
+        currency,
+      };
+    } catch (error) {
+      this.logger.error(`Error in getSalesDashboard: ${error.message}`);
+      // Return safe defaults on any error
+      return {
+        ordersByChannel: [],
+        revenueByChannel: [],
+        topCustomers: [],
+        orderConversionRate: 0,
+        totalOrders: 0,
+        totalRevenue: 0,
+        currency: 'USD',
+      };
     }
-
-    const topCustomers = Array.from(customerRevenueMap.entries())
-      .map(([customerId, data]) => ({
-        customerId,
-        companyName: data.companyName,
-        revenue: data.revenue,
-        orderCount: data.orderCount,
-      }))
-      .sort((a, b) => b.revenue - a.revenue)
-      .slice(0, 10); // Top 10
-
-    // Calculate order conversion rate (confirmed / total)
-    const totalOrders = await this.prisma.order.count({
-      where: orderWhere,
-    });
-    const confirmedOrders = await this.prisma.order.count({
-      where: {
-        ...orderWhere,
-        status: { in: [OrderStatus.CONFIRMED, OrderStatus.ALLOCATED, OrderStatus.SHIPPED, OrderStatus.DELIVERED, OrderStatus.COMPLETED, OrderStatus.FULFILLED] },
-      },
-    });
-    const orderConversionRate = totalOrders > 0 ? (confirmedOrders / totalOrders) * 100 : 0;
-
-    const currency = orders.length > 0 ? orders[0].currency : 'USD';
-
-    return {
-      ordersByChannel: ordersByChannel.map(item => ({
-        channel: item.channel,
-        orders: item.orders,
-        revenue: item.revenue,
-      })),
-      revenueByChannel,
-      topCustomers,
-      orderConversionRate,
-      totalOrders,
-      totalRevenue,
-      currency,
-    };
   }
 
   /**

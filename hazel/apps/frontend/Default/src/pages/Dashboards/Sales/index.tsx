@@ -203,7 +203,7 @@ const SalesDashboardPage: React.FC = () => {
                         <div className="flex-grow-1">
                           <p className="text-uppercase fw-medium text-muted mb-0">Total Revenue</p>
                           <h4 className="mb-0 mt-2">
-                            {formatCurrency(dashboard.totalRevenue, dashboard.currency)}
+                            {formatCurrency(dashboard.totalRevenue || 0, dashboard.currency || 'USD')}
                           </h4>
                         </div>
                         <div className="flex-shrink-0">
@@ -226,7 +226,7 @@ const SalesDashboardPage: React.FC = () => {
                         <div className="flex-grow-1">
                           <p className="text-uppercase fw-medium text-muted mb-0">Total Orders</p>
                           <h4 className="mb-0 mt-2">
-                            {dashboard.totalOrders.toLocaleString()}
+                            {(dashboard.totalOrders || 0).toLocaleString()}
                           </h4>
                         </div>
                         <div className="flex-shrink-0">
@@ -248,15 +248,15 @@ const SalesDashboardPage: React.FC = () => {
                       <div className="d-flex align-items-center">
                         <div className="flex-grow-1">
                           <p className="text-uppercase fw-medium text-muted mb-0">Conversion Rate</p>
-                          <h4 className={`mb-0 mt-2 ${dashboard.orderConversionRate >= 80 ? 'text-success' : dashboard.orderConversionRate >= 60 ? 'text-warning' : 'text-danger'}`}>
-                            {dashboard.orderConversionRate.toFixed(1)}%
+                          <h4 className={`mb-0 mt-2 ${(dashboard.orderConversionRate || 0) >= 80 ? 'text-success' : (dashboard.orderConversionRate || 0) >= 60 ? 'text-warning' : 'text-danger'}`}>
+                            {(dashboard.orderConversionRate || 0).toFixed(1)}%
                           </h4>
                           <small className="text-muted">Confirmed / Total</small>
                         </div>
                         <div className="flex-shrink-0">
                           <div className="avatar-sm">
-                            <span className={`avatar-title rounded fs-2 ${dashboard.orderConversionRate >= 80 ? 'bg-success-subtle' : dashboard.orderConversionRate >= 60 ? 'bg-warning-subtle' : 'bg-danger-subtle'}`}>
-                              <FeatherIcon icon="target" className={dashboard.orderConversionRate >= 80 ? 'text-success' : dashboard.orderConversionRate >= 60 ? 'text-warning' : 'text-danger'} />
+                            <span className={`avatar-title rounded fs-2 ${(dashboard.orderConversionRate || 0) >= 80 ? 'bg-success-subtle' : (dashboard.orderConversionRate || 0) >= 60 ? 'bg-warning-subtle' : 'bg-danger-subtle'}`}>
+                              <FeatherIcon icon="target" className={(dashboard.orderConversionRate || 0) >= 80 ? 'text-success' : (dashboard.orderConversionRate || 0) >= 60 ? 'text-warning' : 'text-danger'} />
                             </span>
                           </div>
                         </div>
@@ -274,7 +274,7 @@ const SalesDashboardPage: React.FC = () => {
                       <h5 className="card-title mb-0">Revenue by Channel</h5>
                     </CardHeader>
                     <CardBody>
-                      {dashboard.revenueByChannel.length === 0 ? (
+                      {!dashboard.revenueByChannel || dashboard.revenueByChannel.length === 0 ? (
                         <div className="text-center py-5">
                           <div className="text-muted mb-3">
                             <FeatherIcon icon="inbox" size={64} />
@@ -301,10 +301,10 @@ const SalesDashboardPage: React.FC = () => {
                                     </Badge>
                                   </td>
                                   <td className="text-end fw-medium">
-                                    {formatCurrency(item.revenue, dashboard.currency)}
+                                    {formatCurrency(item.revenue || 0, dashboard.currency || 'USD')}
                                   </td>
                                   <td className="text-end">
-                                    <Badge color="info">{item.percentage.toFixed(1)}%</Badge>
+                                    <Badge color="info">{(item.percentage || 0).toFixed(1)}%</Badge>
                                   </td>
                                 </tr>
                               ))}
@@ -325,7 +325,7 @@ const SalesDashboardPage: React.FC = () => {
                       <h5 className="card-title mb-0">Top Customers</h5>
                     </CardHeader>
                     <CardBody>
-                      {dashboard.topCustomers.length === 0 ? (
+                      {!dashboard.topCustomers || dashboard.topCustomers.length === 0 ? (
                         <div className="text-center py-5">
                           <div className="text-muted mb-3">
                             <FeatherIcon icon="users" size={64} />
