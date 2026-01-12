@@ -294,3 +294,42 @@ model FinancialTransaction {
   @@index([createdAt])
   @@map("financial_transactions")
 }
+
+model Asset {
+  id         String   @id @default(uuid())
+  fileName   String
+  mimeType   String
+  size       Int      // Size in bytes
+  category   String   // IMAGE, TECH_PACK, CERTIFICATE, OTHER
+  entityType String   // PRODUCT, VARIANT, STYLE, COLLECTION
+  entityId   String   // ID of the linked entity (no FK constraint)
+  filePath   String   // Path to the stored file
+  createdAt  DateTime @default(now())
+
+  @@index([entityType, entityId])
+  @@map("assets")
+}
+
+model Webhook {
+  id        String   @id @default(uuid())
+  event     String   // order.created, order.fulfilled, inventory.low_stock
+  targetUrl String
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  @@index([event, isActive])
+  @@map("webhooks")
+}
+
+model IntegrationLog {
+  id            String   @id @default(uuid())
+  integrationId String   // webhookId or integration identifier
+  status        String   // SUCCESS, FAILED
+  payload       String?  // JSON payload sent
+  response      String?  // JSON response received
+  createdAt     DateTime @default(now())
+
+  @@index([integrationId, createdAt])
+  @@index([status, createdAt])
+  @@map("integration_logs")
+}

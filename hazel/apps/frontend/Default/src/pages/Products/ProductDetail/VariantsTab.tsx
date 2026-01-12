@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
-import { Table, Button, Badge, Modal, ModalHeader, ModalBody, Form, Label, Input, FormFeedback } from 'reactstrap';
+import { Table, Button, Badge, Modal, ModalHeader, ModalBody, Form, Label, Input, FormFeedback, Card, CardBody } from 'reactstrap';
 import { useFormik } from 'formik';
 import * as Yup from 'yup';
 import FeatherIcon from 'feather-icons-react';
 import { ProductWithVariants, productsAPI, CreateProductVariantDto } from '../../../api/products';
 import { toast } from 'react-toastify';
+import AssetList from '../../../Components/Assets/AssetList';
 
 interface VariantsTabProps {
   product: ProductWithVariants;
@@ -14,6 +15,7 @@ interface VariantsTabProps {
 const VariantsTab: React.FC<VariantsTabProps> = ({ product, onReload }) => {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [expandedVariantId, setExpandedVariantId] = useState<string | null>(null);
 
   const validation = useFormik({
     enableReinitialize: true,
@@ -72,27 +74,52 @@ const VariantsTab: React.FC<VariantsTabProps> = ({ product, onReload }) => {
                 <th>SKU</th>
                 <th>Attributes</th>
                 <th>Created</th>
+                <th className="text-end">Actions</th>
               </tr>
             </thead>
             <tbody>
               {product.variants.map((variant) => {
                 const attrs = parseAttributes(variant.attributes);
+                const isExpanded = expandedVariantId === variant.id;
                 return (
-                  <tr key={variant.id}>
-                    <td>
-                      <strong>{variant.sku}</strong>
-                    </td>
-                    <td>
-                      {attrs ? (
-                        <pre className="mb-0" style={{ fontSize: '12px' }}>
-                          {JSON.stringify(attrs, null, 2)}
-                        </pre>
-                      ) : (
-                        <span className="text-muted">-</span>
-                      )}
-                    </td>
-                    <td>{new Date(variant.createdAt).toLocaleDateString()}</td>
-                  </tr>
+                  <React.Fragment key={variant.id}>
+                    <tr>
+                      <td>
+                        <strong>{variant.sku}</strong>
+                      </td>
+                      <td>
+                        {attrs ? (
+                          <pre className="mb-0" style={{ fontSize: '12px' }}>
+                            {JSON.stringify(attrs, null, 2)}
+                          </pre>
+                        ) : (
+                          <span className="text-muted">-</span>
+                        )}
+                      </td>
+                      <td>{new Date(variant.createdAt).toLocaleDateString()}</td>
+                      <td className="text-end">
+                        <Button
+                          color="info"
+                          size="sm"
+                          onClick={() => setExpandedVariantId(isExpanded ? null : variant.id)}
+                        >
+                          <FeatherIcon icon={isExpanded ? "chevron-up" : "chevron-down"} size={14} className="me-1" />
+                          {isExpanded ? 'Hide' : 'Show'} Assets
+                        </Button>
+                      </td>
+                    </tr>
+                    {isExpanded && (
+                      <tr>
+                        <td colSpan={4}>
+                          <Card className="mt-2 mb-2">
+                            <CardBody>
+                              <AssetList entityType="VARIANT" entityId={variant.id} />
+                            </CardBody>
+                          </Card>
+                        </td>
+                      </tr>
+                    )}
+                  </React.Fragment>
                 );
               })}
             </tbody>

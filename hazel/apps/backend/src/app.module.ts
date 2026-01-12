@@ -18,6 +18,8 @@ import { ReplenishmentModule } from './modules/replenishment/replenishment.modul
 import { ProductionModule } from './modules/production/production.module';
 import { FinanceModule } from './modules/finance/finance.module';
 import { AnalyticsModule } from './modules/analytics/analytics.module';
+import { DashboardModule } from './modules/dashboard/dashboard.module';
+import { AssetsModule } from './modules/assets/assets.module';
 import { IntegrationsModule } from './modules/integrations/integrations.module';
 
 @Module({
@@ -44,6 +46,8 @@ import { IntegrationsModule } from './modules/integrations/integrations.module';
     ProductionModule,
     FinanceModule,
     AnalyticsModule,
+    DashboardModule,
+    AssetsModule,
     IntegrationsModule,
   ],
   controllers: [],

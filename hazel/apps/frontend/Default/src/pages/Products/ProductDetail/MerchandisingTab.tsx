@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Form, Label, Input, Button, FormFeedback, Spinner, Badge, Alert, Modal, ModalHeader, ModalBody } from 'reactstrap';
+import { Form, Label, Input, Button, FormFeedback, Spinner, Badge, Alert, Modal, ModalHeader, ModalBody, Card, CardBody } from 'reactstrap';
 import { useFormik } from 'formik';
 import * as Yup from 'yup';
 import FeatherIcon from 'feather-icons-react';
@@ -7,6 +7,7 @@ import { ProductWithVariants, productsAPI, AssignProductRelationsDto } from '../
 import { collectionsAPI } from '../../../api/collections';
 import { stylesAPI, CreateStyleDto } from '../../../api/styles';
 import { toast } from 'react-toastify';
+import AssetList from '../../../Components/Assets/AssetList';
 
 interface MerchandisingTabProps {
   product: ProductWithVariants;
@@ -292,6 +293,14 @@ const MerchandisingTab: React.FC<MerchandisingTabProps> = ({ product, onReload }
           </Form>
         </ModalBody>
       </Modal>
+
+      {/* Style Assets */}
+      {(product as any).style && (
+        <div className="mt-4">
+          <h6 className="mb-3">Style Assets</h6>
+          <AssetList entityType="STYLE" entityId={(product as any).style.id} />
+        </div>
+      )}
     </div>
   );
 };

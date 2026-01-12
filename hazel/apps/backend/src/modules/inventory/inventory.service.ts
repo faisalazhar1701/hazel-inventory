@@ -2,8 +2,10 @@ import {
   Injectable,
   NotFoundException,
   BadRequestException,
+  Logger,
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
+import { IntegrationsService } from '../integrations/integrations.service';
 import { InventoryItem, InventoryLedger } from '@prisma/client';
 import { InventoryItemType } from '@hazel/shared-types';
 import {
@@ -78,7 +80,13 @@ export class TransferInventoryDto {
 
 @Injectable()
 export class InventoryService {
-  constructor(private prisma: PrismaService) {}
+  private readonly logger = new Logger(InventoryService.name);
+  private readonly LOW_STOCK_THRESHOLD = 10;
+
+  constructor(
+    private prisma: PrismaService,
+    private integrationsService: IntegrationsService,
+  ) {}
 
   private async getOrCreateInventoryItem(
     productVariantId: string,
@@ -164,6 +172,9 @@ export class InventoryService {
       return { inventoryItem: updatedItem, ledgerEntry };
     });
 
+    // Check for low stock after adding inventory (in case it was low before)
+    await this.checkLowStock(result.inventoryItem);
+
     return result;
   }
 
@@ -217,7 +228,47 @@ export class InventoryService {
       return { inventoryItem: updatedItem, ledgerEntry };
     });
 
+    // Check for low stock after deduction
+    await this.checkLowStock(result.inventoryItem);
+
     return result;
+  }
+
+  /**
+   * Check for low stock and trigger webhook if needed
+   */
+  private async checkLowStock(inventoryItem: InventoryItem): Promise<void> {
+    if (inventoryItem.quantity <= this.LOW_STOCK_THRESHOLD) {
+      // Get product variant details
+      const variant = await this.prisma.productVariant.findUnique({
+        where: { id: inventoryItem.productVariantId },
+        include: {
+          product: true,
+        },
+      });
+
+      const warehouse = await this.prisma.warehouse.findUnique({
+        where: { id: inventoryItem.warehouseId },
+      });
+
+      if (variant && warehouse) {
+        // Trigger webhook for low stock
+        this.integrationsService.triggerWebhooks('inventory.low_stock', {
+          event: 'inventory.low_stock',
+          inventoryItemId: inventoryItem.id,
+          productVariantId: inventoryItem.productVariantId,
+          productVariantSku: variant.sku,
+          productName: variant.product.name,
+          warehouseId: inventoryItem.warehouseId,
+          warehouseName: warehouse.name,
+          quantity: inventoryItem.quantity,
+          threshold: this.LOW_STOCK_THRESHOLD,
+          itemType: inventoryItem.itemType,
+        }).catch(err => {
+          this.logger.error(`Failed to trigger inventory.low_stock webhook: ${err.message}`);
+        });
+      }
+    }
   }
 
   async transferInventory(data: TransferInventoryDto): Promise<{
@@ -309,6 +360,9 @@ export class InventoryService {
         toLedgerEntry,
       };
     });
+
+    // Check for low stock after transfer (check source warehouse)
+    await this.checkLowStock(result.fromInventoryItem);
 
     return result;
   }

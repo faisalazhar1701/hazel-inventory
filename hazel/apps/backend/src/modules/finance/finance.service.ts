@@ -223,7 +223,7 @@ export class FinanceService {
       );
       // Don't throw - we don't want to break order fulfillment if finance fails
       // In production, might want to use event queue or separate transaction
-      throw error;
+      // Error is logged but not thrown to allow order fulfillment to complete
     }
   }
 

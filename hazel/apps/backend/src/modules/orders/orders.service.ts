@@ -7,6 +7,7 @@ import {
 import { PrismaService } from '../prisma/prisma.service';
 import { InventoryService } from '../inventory/inventory.service';
 import { FinanceService } from '../finance/finance.service';
+import { IntegrationsService } from '../integrations/integrations.service';
 import {
   Order,
   OrderItem,
@@ -96,6 +97,7 @@ export class OrdersService {
     private prisma: PrismaService,
     private inventoryService: InventoryService,
     private financeService: FinanceService,
+    private integrationsService: IntegrationsService,
   ) {}
 
   private async generateUniqueOrderNumber(): Promise<string> {
@@ -288,6 +290,22 @@ export class OrdersService {
     this.logger.log(
       `Order creation completed: ${order.orderNumber} (Channel: ${data.channel})`,
     );
+
+    // Trigger webhook for order.created
+    this.integrationsService.triggerWebhooks('order.created', {
+      event: 'order.created',
+      orderId: order.id,
+      orderNumber: order.orderNumber,
+      channel: order.channel,
+      status: order.status,
+      totalAmount: order.totalAmount,
+      currency: order.currency,
+      customerId: order.customerId,
+      createdAt: order.createdAt,
+    }).catch(err => {
+      this.logger.error(`Failed to trigger order.created webhook: ${err.message}`);
+    });
+
     return order;
   }
 
@@ -803,6 +821,21 @@ export class OrdersService {
           `Failed to record financial transactions for order ${id}: ${error.message}`,
         );
         // Don't throw - order fulfillment should succeed even if finance fails
+      });
+
+      // Trigger webhook for order.fulfilled
+      this.integrationsService.triggerWebhooks('order.fulfilled', {
+        event: 'order.fulfilled',
+        orderId: updatedOrder.id,
+        orderNumber: updatedOrder.orderNumber,
+        channel: updatedOrder.channel,
+        status: updatedOrder.status,
+        totalAmount: updatedOrder.totalAmount,
+        currency: updatedOrder.currency,
+        customerId: updatedOrder.customerId,
+        fulfilledAt: updatedOrder.fulfilledAt || new Date(),
+      }).catch(err => {
+        this.logger.error(`Failed to trigger order.fulfilled webhook: ${err.message}`);
       });
 
       return updatedOrder;

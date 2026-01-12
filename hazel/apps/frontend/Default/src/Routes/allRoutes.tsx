@@ -150,6 +150,19 @@ import FinanceOverview from "../pages/Finance/FinanceOverview";
 import TransactionsList from "../pages/Finance/TransactionsList";
 import InventoryValuation from "../pages/Finance/InventoryValuation";
 
+// Analytics
+import OmnichannelAnalytics from "../pages/Analytics/Omnichannel";
+import FulfillmentAnalytics from "../pages/Analytics/Fulfillment";
+
+// Dashboards
+import ExecutiveDashboard from "../pages/Dashboards/Executive";
+import SalesDashboard from "../pages/Dashboards/Sales";
+import InventoryDashboard from "../pages/Dashboards/Inventory";
+import OperationsDashboard from "../pages/Dashboards/Operations";
+
+// Integrations
+import IntegrationsPage from "../pages/Integrations";
+
 
 
 const authProtectedRoutes = [
@@ -190,6 +203,19 @@ const authProtectedRoutes = [
   { path: "/finance", component: <FinanceOverview /> },
   { path: "/finance/transactions", component: <TransactionsList /> },
   { path: "/finance/inventory-valuation", component: <InventoryValuation /> },
+
+  // Analytics
+  { path: "/analytics/omnichannel", component: <OmnichannelAnalytics /> },
+  { path: "/analytics/fulfillment", component: <FulfillmentAnalytics /> },
+
+  // Dashboards
+  { path: "/dashboards/executive", component: <ExecutiveDashboard /> },
+  { path: "/dashboards/sales", component: <SalesDashboard /> },
+  { path: "/dashboards/inventory", component: <InventoryDashboard /> },
+  { path: "/dashboards/operations", component: <OperationsDashboard /> },
+
+  // Integrations
+  { path: "/integrations", component: <IntegrationsPage /> },
 
   // Demo routes removed - not part of B1-B4
 

@@ -23,6 +23,7 @@ import VariantsTab from './VariantsTab';
 import BomTab from './BomTab';
 import LifecycleTab from './LifecycleTab';
 import MerchandisingTab from './MerchandisingTab';
+import AssetList from '../../../Components/Assets/AssetList';
 
 const ProductDetail = () => {
   const { id } = useParams<{ id: string }>();
@@ -151,6 +152,14 @@ const ProductDetail = () => {
                         Merchandising
                       </NavLink>
                     </NavItem>
+                    <NavItem>
+                      <NavLink
+                        className={classnames({ active: activeTab === '6' })}
+                        onClick={() => setActiveTab('6')}
+                      >
+                        Assets
+                      </NavLink>
+                    </NavItem>
                   </Nav>
                   <TabContent activeTab={activeTab} className="p-3">
                     <TabPane tabId="1">
@@ -167,6 +176,9 @@ const ProductDetail = () => {
                     </TabPane>
                     <TabPane tabId="5">
                       <MerchandisingTab product={product} onReload={loadProduct} />
+                    </TabPane>
+                    <TabPane tabId="6">
+                      <AssetList entityType="PRODUCT" entityId={product.id} />
                     </TabPane>
                   </TabContent>
                 </CardBody>

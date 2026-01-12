@@ -12,6 +12,8 @@ const Navdata = () => {
     const [isCRM, setIsCRM] = useState<boolean>(false);
     const [isIntelligence, setIsIntelligence] = useState<boolean>(false);
     const [isFinance, setIsFinance] = useState<boolean>(false);
+    const [isAnalytics, setIsAnalytics] = useState<boolean>(false);
+    const [isDashboards, setIsDashboards] = useState<boolean>(false);
     const [isBaseUi, setIsBaseUi] = useState<boolean>(false);
     const [isAdvanceUi, setIsAdvanceUi] = useState<boolean>(false);
     const [isForms, setIsForms] = useState<boolean>(false);
@@ -227,6 +229,54 @@ const Navdata = () => {
                 { id: "financeTransactions", label: "Transactions", link: "/finance/transactions", parentId: "finance" },
                 { id: "financeValuation", label: "Inventory Valuation", link: "/finance/inventory-valuation", parentId: "finance" },
             ],
+        },
+        {
+            id: "analytics",
+            label: "Analytics",
+            icon: "ri-bar-chart-line",
+            link: "/#",
+            click: function (e: any) {
+                e.preventDefault();
+                setIsAnalytics(!isAnalytics);
+                setIscurrentState('Analytics');
+                updateIconSidebar(e);
+            },
+            stateVariables: isAnalytics,
+            subItems: [
+                { id: "omnichannelAnalytics", label: "Omnichannel Intelligence", link: "/analytics/omnichannel", parentId: "analytics" },
+                { id: "fulfillmentAnalytics", label: "Fulfillment Intelligence", link: "/analytics/fulfillment", parentId: "analytics" },
+            ],
+        },
+        {
+            id: "dashboards",
+            label: "Dashboards",
+            icon: "ri-dashboard-line",
+            link: "/#",
+            click: function (e: any) {
+                e.preventDefault();
+                setIsDashboards(!isDashboards);
+                setIscurrentState('Dashboards');
+                updateIconSidebar(e);
+            },
+            stateVariables: isDashboards,
+            subItems: [
+                { id: "executiveDashboard", label: "Executive", link: "/dashboards/executive", parentId: "dashboards" },
+                { id: "salesDashboard", label: "Sales", link: "/dashboards/sales", parentId: "dashboards" },
+                { id: "inventoryDashboard", label: "Inventory", link: "/dashboards/inventory", parentId: "dashboards" },
+                { id: "operationsDashboard", label: "Operations", link: "/dashboards/operations", parentId: "dashboards" },
+            ],
+        },
+        {
+            id: "integrations",
+            label: "Integrations",
+            icon: "ri-plug-line",
+            link: "/integrations",
+            click: function (e: any) {
+                e.preventDefault();
+                setIscurrentState('Integrations');
+                updateIconSidebar(e);
+            },
+            stateVariables: false,
         },
         {
             label: "pages",
