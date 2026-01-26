@@ -82,6 +82,7 @@ model Product {
   name            String
   sku             String           @unique
   description     String?
+  imageUrl        String?
   lifecycleStatus String           @default("DRAFT") // DRAFT, ACTIVE, DISCONTINUED
   collectionId    String?
   createdAt       DateTime         @default(now())

@@ -19,6 +19,10 @@ export class CreateProductDto {
   description?: string;
 
   @IsString()
+  @IsOptional()
+  imageUrl?: string;
+
+  @IsString()
   @IsIn(['DRAFT', 'ACTIVE', 'DISCONTINUED'])
   @IsOptional()
   lifecycleStatus?: ProductLifecycleStatus;
@@ -93,6 +97,7 @@ export class ProductsService {
         name: data.name,
         sku: data.sku,
         description: data.description,
+        imageUrl: data.imageUrl || null,
         lifecycleStatus: data.lifecycleStatus || 'DRAFT',
         collectionId: data.collectionId || null,
       },

@@ -1,10 +1,7 @@
 import React, { useState } from 'react';
-import { Table, Button, Badge, Modal, ModalHeader, ModalBody, Form, Label, Input, FormFeedback, Card, CardBody } from 'reactstrap';
-import { useFormik } from 'formik';
-import * as Yup from 'yup';
+import { Table, Button, Badge, Card, CardBody } from 'reactstrap';
 import FeatherIcon from 'feather-icons-react';
-import { ProductWithVariants, productsAPI, CreateProductVariantDto } from '../../../api/products';
-import { toast } from 'react-toastify';
+import { ProductWithVariants } from '../../../api/products';
 import AssetList from '../../../Components/Assets/AssetList';
 
 interface VariantsTabProps {
@@ -12,40 +9,8 @@ interface VariantsTabProps {
   onReload: () => void;
 }
 
-const VariantsTab: React.FC<VariantsTabProps> = ({ product, onReload }) => {
-  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-  const [loading, setLoading] = useState(false);
+const VariantsTab: React.FC<VariantsTabProps> = ({ product }) => {
   const [expandedVariantId, setExpandedVariantId] = useState<string | null>(null);
-
-  const validation = useFormik({
-    enableReinitialize: true,
-    initialValues: {
-      sku: '',
-      attributes: '',
-    },
-    validationSchema: Yup.object({
-      sku: Yup.string().required('SKU is required'),
-      attributes: Yup.string(),
-    }),
-    onSubmit: async (values) => {
-      setLoading(true);
-      try {
-        const data: CreateProductVariantDto = {
-          sku: values.sku,
-          attributes: values.attributes || undefined,
-        };
-        await productsAPI.createVariant(product.id, data);
-        toast.success('Variant created successfully');
-        setIsAddModalOpen(false);
-        validation.resetForm();
-        onReload();
-      } catch (error) {
-        toast.error(error instanceof Error ? error.message : 'Failed to create variant');
-      } finally {
-        setLoading(false);
-      }
-    },
-  });
 
   const parseAttributes = (attributes?: string) => {
     if (!attributes) return null;
@@ -56,14 +21,30 @@ const VariantsTab: React.FC<VariantsTabProps> = ({ product, onReload }) => {
     }
   };
 
+  const getVariantDisplay = (variant: any) => {
+    const attrs = parseAttributes(variant.attributes);
+    if (attrs && attrs.color && attrs.size) {
+      return (
+        <div>
+          <Badge color="primary" className="me-2">
+            {attrs.color}
+          </Badge>
+          <Badge color="info">
+            {attrs.size}
+          </Badge>
+        </div>
+      );
+    }
+    return <span className="text-muted">-</span>;
+  };
+
   return (
     <div>
       <div className="d-flex justify-content-between align-items-center mb-3">
         <h6 className="mb-0">Product Variants</h6>
-        <Button color="primary" size="sm" onClick={() => setIsAddModalOpen(true)}>
-          <FeatherIcon icon="plus" size={14} className="me-1" />
-          Add Variant
-        </Button>
+        <div className="text-muted small">
+          {product.variants?.length || 0} variant{product.variants?.length !== 1 ? 's' : ''}
+        </div>
       </div>
 
       {product.variants && product.variants.length > 0 ? (
@@ -72,7 +53,8 @@ const VariantsTab: React.FC<VariantsTabProps> = ({ product, onReload }) => {
             <thead className="table-light">
               <tr>
                 <th>SKU</th>
-                <th>Attributes</th>
+                <th>Color</th>
+                <th>Size</th>
                 <th>Created</th>
                 <th className="text-end">Actions</th>
               </tr>
@@ -88,10 +70,15 @@ const VariantsTab: React.FC<VariantsTabProps> = ({ product, onReload }) => {
                         <strong>{variant.sku}</strong>
                       </td>
                       <td>
-                        {attrs ? (
-                          <pre className="mb-0" style={{ fontSize: '12px' }}>
-                            {JSON.stringify(attrs, null, 2)}
-                          </pre>
+                        {attrs?.color ? (
+                          <Badge color="primary">{attrs.color}</Badge>
+                        ) : (
+                          <span className="text-muted">-</span>
+                        )}
+                      </td>
+                      <td>
+                        {attrs?.size ? (
+                          <Badge color="info">{attrs.size}</Badge>
                         ) : (
                           <span className="text-muted">-</span>
                         )}
@@ -110,7 +97,7 @@ const VariantsTab: React.FC<VariantsTabProps> = ({ product, onReload }) => {
                     </tr>
                     {isExpanded && (
                       <tr>
-                        <td colSpan={4}>
+                        <td colSpan={5}>
                           <Card className="mt-2 mb-2">
                             <CardBody>
                               <AssetList entityType="VARIANT" entityId={variant.id} />
@@ -127,53 +114,14 @@ const VariantsTab: React.FC<VariantsTabProps> = ({ product, onReload }) => {
         </div>
       ) : (
         <div className="text-center py-4">
-          <p className="text-muted">No variants found. Add your first variant.</p>
+          <div className="text-muted mb-3">
+            <FeatherIcon icon="layers" size={48} />
+          </div>
+          <p className="text-muted">No variants found. Variants can be added during product creation.</p>
         </div>
       )}
-
-      <Modal isOpen={isAddModalOpen} toggle={() => setIsAddModalOpen(false)}>
-        <ModalHeader toggle={() => setIsAddModalOpen(false)}>Add Variant</ModalHeader>
-        <ModalBody>
-          <Form onSubmit={validation.handleSubmit}>
-            <div className="mb-3">
-              <Label className="form-label">SKU *</Label>
-              <Input
-                type="text"
-                name="sku"
-                value={validation.values.sku}
-                onChange={validation.handleChange}
-                invalid={validation.touched.sku && validation.errors.sku ? true : false}
-              />
-              {validation.touched.sku && validation.errors.sku && (
-                <FormFeedback type="invalid">{validation.errors.sku}</FormFeedback>
-              )}
-            </div>
-            <div className="mb-3">
-              <Label className="form-label">Attributes (JSON)</Label>
-              <Input
-                type="textarea"
-                rows={4}
-                name="attributes"
-                value={validation.values.attributes}
-                onChange={validation.handleChange}
-                placeholder='{"size": "M", "color": "Blue"}'
-              />
-              <small className="text-muted">Enter attributes as JSON string</small>
-            </div>
-            <div className="d-flex justify-content-end gap-2">
-              <Button type="button" color="light" onClick={() => setIsAddModalOpen(false)}>
-                Cancel
-              </Button>
-              <Button type="submit" color="primary" disabled={loading}>
-                {loading ? 'Creating...' : 'Create Variant'}
-              </Button>
-            </div>
-          </Form>
-        </ModalBody>
-      </Modal>
     </div>
   );
 };
 
 export default VariantsTab;
-

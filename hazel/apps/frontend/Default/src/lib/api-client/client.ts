@@ -67,7 +67,14 @@ export class ApiClient {
     };
 
     if (data && (method === 'POST' || method === 'PUT' || method === 'PATCH')) {
-      config.body = JSON.stringify(data);
+      // Handle FormData (for file uploads)
+      if (data instanceof FormData) {
+        // Don't set Content-Type header for FormData, let browser set it with boundary
+        delete headers['Content-Type'];
+        config.body = data;
+      } else {
+        config.body = JSON.stringify(data);
+      }
     }
 
     const controller = new AbortController();

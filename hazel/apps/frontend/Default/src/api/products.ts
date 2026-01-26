@@ -7,10 +7,17 @@ export interface Product {
   name: string;
   sku: string;
   description?: string;
+  imageUrl?: string;
   lifecycleStatus: ProductLifecycleStatus;
   createdAt: string;
   updatedAt: string;
   variants?: ProductVariant[];
+  collection?: {
+    id: string;
+    name: string;
+    season?: string;
+    year?: number;
+  };
 }
 
 export interface ProductVariant {
@@ -35,7 +42,9 @@ export interface CreateProductDto {
   name: string;
   sku: string;
   description?: string;
+  imageUrl?: string;
   lifecycleStatus?: ProductLifecycleStatus;
+  collectionId?: string;
 }
 
 export interface CreateProductVariantDto {
