@@ -13,6 +13,7 @@ import {
   CreateProductDto,
   CreateProductVariantDto,
   CreateBomDto,
+  UpdateProductDto,
   UpdateLifecycleStatusDto,
   AssignProductRelationsDto,
   ProductLifecycleStatus,
@@ -65,6 +66,15 @@ export class ProductsController {
       ...createBomDto,
       variantId,
     });
+  }
+
+  @Patch(':id')
+  @HttpCode(HttpStatus.OK)
+  async updateProduct(
+    @Param('id') id: string,
+    @Body() updateProductDto: UpdateProductDto,
+  ) {
+    return this.productsService.updateProduct(id, updateProductDto);
   }
 
   @Patch(':id/lifecycle')

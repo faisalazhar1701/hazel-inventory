@@ -79,6 +79,24 @@ export class UpdateLifecycleStatusDto {
   lifecycleStatus: ProductLifecycleStatus;
 }
 
+export class UpdateProductDto {
+  @IsString()
+  @IsOptional()
+  name?: string;
+
+  @IsString()
+  @IsOptional()
+  description?: string;
+
+  @IsString()
+  @IsOptional()
+  imageUrl?: string;
+
+  @IsString()
+  @IsOptional()
+  collectionId?: string;
+}
+
 export class AssignProductRelationsDto {
   @IsString()
   @IsOptional()
@@ -237,6 +255,55 @@ export class ProductsService {
       },
       include: {
         variant: true,
+      },
+    });
+  }
+
+  async updateProduct(id: string, data: UpdateProductDto): Promise<Product> {
+    const product = await this.prisma.product.findUnique({
+      where: { id },
+    });
+    if (!product) {
+      throw new NotFoundException(`Product with ID ${id} not found`);
+    }
+
+    // Verify collection exists if collectionId is provided
+    if (data.collectionId !== undefined) {
+      if (data.collectionId) {
+        const collection = await this.prisma.collection.findUnique({
+          where: { id: data.collectionId },
+        });
+        if (!collection) {
+          throw new NotFoundException(`Collection with ID ${data.collectionId} not found`);
+        }
+      }
+    }
+
+    const updateData: any = {};
+    if (data.name !== undefined) updateData.name = data.name;
+    if (data.description !== undefined) updateData.description = data.description;
+    if (data.imageUrl !== undefined) updateData.imageUrl = data.imageUrl || null;
+    if (data.collectionId !== undefined) updateData.collectionId = data.collectionId || null;
+
+    return this.prisma.product.update({
+      where: { id },
+      data: updateData,
+      include: {
+        collection: {
+          select: {
+            id: true,
+            name: true,
+            season: true,
+            year: true,
+          },
+        },
+        style: {
+          select: {
+            id: true,
+            name: true,
+            code: true,
+          },
+        },
       },
     });
   }
