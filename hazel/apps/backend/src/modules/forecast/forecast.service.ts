@@ -225,7 +225,6 @@ export class ForecastService {
               select: {
                 id: true,
                 name: true,
-                sku: true,
               },
             },
           },

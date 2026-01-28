@@ -59,11 +59,11 @@ export class ProductsController {
   @HttpCode(HttpStatus.CREATED)
   async createBom(
     @Param('variantId') variantId: string,
-    @Body() createBomDto: Omit<CreateBomDto, 'parentVariantId'>,
+    @Body() createBomDto: Omit<CreateBomDto, 'variantId'>,
   ) {
     return this.productsService.createBom({
       ...createBomDto,
-      parentVariantId: variantId,
+      variantId,
     });
   }
 

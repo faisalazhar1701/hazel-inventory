@@ -224,7 +224,6 @@ export class ReplenishmentService {
               select: {
                 id: true,
                 name: true,
-                sku: true,
               },
             },
           },

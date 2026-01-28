@@ -300,11 +300,10 @@ export class IntegrationsService {
       },
     });
 
-    const headers = ['ID', 'Name', 'SKU', 'Description', 'Lifecycle Status', 'Collection', 'Created At'];
+    const headers = ['ID', 'Name', 'Description', 'Lifecycle Status', 'Collection', 'Created At'];
     const rows = products.map(product => [
       product.id,
       product.name,
-      product.sku,
       product.description || '',
       product.lifecycleStatus,
       product.collection?.name || '',
@@ -389,7 +388,7 @@ export class IntegrationsService {
     }
 
     const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
-    const requiredHeaders = ['name', 'sku'];
+    const requiredHeaders = ['name'];
     const missingHeaders = requiredHeaders.filter(h => !headers.includes(h));
     
     if (missingHeaders.length > 0) {
@@ -417,7 +416,6 @@ export class IntegrationsService {
         await this.prisma.product.create({
           data: {
             name: row.name,
-            sku: row.sku,
             description: row.description || null,
             lifecycleStatus: row['lifecycle status'] || row.lifecyclestatus || 'DRAFT',
             collectionId: row.collectionid || null,

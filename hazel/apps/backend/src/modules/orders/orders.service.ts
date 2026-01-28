@@ -388,7 +388,6 @@ export class OrdersService {
                   select: {
                     id: true,
                     name: true,
-                    sku: true,
                   },
                 },
               },

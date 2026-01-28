@@ -395,12 +395,10 @@ export class InventoryService {
           select: {
             id: true,
             sku: true,
-            attributes: true,
             product: {
               select: {
                 id: true,
                 name: true,
-                sku: true,
               },
             },
           },
@@ -448,12 +446,10 @@ export class InventoryService {
           select: {
             id: true,
             sku: true,
-            attributes: true,
             product: {
               select: {
                 id: true,
                 name: true,
-                sku: true,
               },
             },
           },
@@ -504,7 +500,6 @@ export class InventoryService {
                   select: {
                     id: true,
                     name: true,
-                    sku: true,
                   },
                 },
               },

@@ -11,10 +11,6 @@ export class CreateProductDto {
   name: string;
 
   @IsString()
-  @IsNotEmpty()
-  sku: string;
-
-  @IsString()
   @IsOptional()
   description?: string;
 
@@ -39,25 +35,41 @@ export class CreateProductVariantDto {
 
   @IsString()
   @IsNotEmpty()
-  sku: string;
+  color: string;
 
   @IsString()
   @IsOptional()
-  attributes?: string; // JSON string
+  size?: string;
+
+  @IsNumber()
+  @Min(0)
+  price: number;
+
+  @IsString()
+  @IsOptional()
+  status?: string;
 }
 
 export class CreateBomDto {
   @IsString()
   @IsNotEmpty()
-  parentVariantId: string;
+  variantId: string;
 
   @IsString()
   @IsNotEmpty()
-  componentVariantId: string;
+  componentName: string;
+
+  @IsString()
+  @IsIn(['FABRIC', 'TRIM', 'PACKAGING', 'OTHER'])
+  category: string;
 
   @IsNumber()
   @Min(0)
   quantity: number;
+
+  @IsString()
+  @IsNotEmpty()
+  unit: string;
 }
 
 export class UpdateLifecycleStatusDto {
@@ -95,7 +107,6 @@ export class ProductsService {
     return this.prisma.product.create({
       data: {
         name: data.name,
-        sku: data.sku,
         description: data.description,
         imageUrl: data.imageUrl || null,
         lifecycleStatus: data.lifecycleStatus || 'DRAFT',
@@ -129,7 +140,15 @@ export class ProductsService {
     });
   }
 
-  async getProductById(id: string): Promise<Product & { variants: (ProductVariant & { bomAsParent: (BillOfMaterial & { componentVariant: ProductVariant })[] })[]; collection: any; style: any }> {
+  async getProductById(
+    id: string,
+  ): Promise<
+    Product & {
+      variants: (ProductVariant & { bomComponents: BillOfMaterial[] })[];
+      collection: any;
+      style: any;
+    }
+  > {
     const product = await this.prisma.product.findUnique({
       where: { id },
       include: {
@@ -150,11 +169,7 @@ export class ProductsService {
         },
         variants: {
           include: {
-            bomAsParent: {
-              include: {
-                componentVariant: true,
-              },
-            },
+            bomComponents: true,
           },
         },
       },
@@ -174,11 +189,33 @@ export class ProductsService {
       throw new NotFoundException(`Product with ID ${data.productId} not found`);
     }
 
+    // Auto-generate SKU based on product and variant attributes
+    const baseSku = product.name.replace(/\s+/g, '-').toUpperCase();
+    const colorPart = data.color.replace(/\s+/g, '-').toUpperCase();
+    const sizePart = (data.size || '').replace(/\s+/g, '-').toUpperCase();
+    const rawSku = [baseSku, colorPart, sizePart].filter(Boolean).join('-');
+
+    // Ensure SKU uniqueness by appending a counter if needed
+    let sku = rawSku;
+    let counter = 1;
+    // eslint-disable-next-line no-constant-condition
+    while (true) {
+      const existing = await this.prisma.productVariant.findUnique({
+        where: { sku },
+      });
+      if (!existing) break;
+      counter += 1;
+      sku = `${rawSku}-${counter}`;
+    }
+
     return this.prisma.productVariant.create({
       data: {
         productId: data.productId,
-        sku: data.sku,
-        attributes: data.attributes || null,
+        sku,
+        color: data.color,
+        size: data.size || '',
+        price: data.price,
+        status: data.status || 'ACTIVE',
       },
     });
   }
@@ -190,49 +227,16 @@ export class ProductsService {
   }
 
   async createBom(data: CreateBomDto): Promise<BillOfMaterial> {
-    // Verify both variants exist
-    const parentVariant = await this.prisma.productVariant.findUnique({
-      where: { id: data.parentVariantId },
-    });
-    if (!parentVariant) {
-      throw new NotFoundException(`Parent variant with ID ${data.parentVariantId} not found`);
-    }
-
-    const componentVariant = await this.prisma.productVariant.findUnique({
-      where: { id: data.componentVariantId },
-    });
-    if (!componentVariant) {
-      throw new NotFoundException(`Component variant with ID ${data.componentVariantId} not found`);
-    }
-
-    // Prevent self-reference
-    if (data.parentVariantId === data.componentVariantId) {
-      throw new BadRequestException('A variant cannot be a component of itself');
-    }
-
-    // Check if BOM entry already exists
-    const existingBom = await this.prisma.billOfMaterial.findUnique({
-      where: {
-        parentVariantId_componentVariantId: {
-          parentVariantId: data.parentVariantId,
-          componentVariantId: data.componentVariantId,
-        },
-      },
-    });
-
-    if (existingBom) {
-      throw new BadRequestException('BOM entry already exists for this parent-component combination');
-    }
-
     return this.prisma.billOfMaterial.create({
       data: {
-        parentVariantId: data.parentVariantId,
-        componentVariantId: data.componentVariantId,
+        variantId: data.variantId,
+        componentName: data.componentName,
+        category: data.category,
         quantity: data.quantity,
+        unit: data.unit,
       },
       include: {
-        parentVariant: true,
-        componentVariant: true,
+        variant: true,
       },
     });
   }

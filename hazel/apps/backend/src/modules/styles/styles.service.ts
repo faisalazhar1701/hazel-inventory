@@ -73,7 +73,6 @@ export class StylesService {
           select: {
             id: true,
             name: true,
-            sku: true,
           },
         },
       },
@@ -88,7 +87,6 @@ export class StylesService {
           select: {
             id: true,
             name: true,
-            sku: true,
             description: true,
           },
         },

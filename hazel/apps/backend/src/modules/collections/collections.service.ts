@@ -72,7 +72,6 @@ export class CollectionsService {
           select: {
             id: true,
             name: true,
-            sku: true,
           },
         },
         _count: {
