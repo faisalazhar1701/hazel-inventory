@@ -417,7 +417,7 @@ const InventoryOverview: React.FC = () => {
                 <option value="">Select a product variant</option>
                 {allVariants.map((variant) => (
                   <option key={variant.id} value={variant.id}>
-                    {variant.productName} – {variant.color || ''} / {variant.size || ''} – {variant.sku}
+                    {variant.productName} — {variant.color || ''} — {variant.size || ''} ({variant.sku})
                   </option>
                 ))}
               </Input>
@@ -556,7 +556,7 @@ const InventoryOverview: React.FC = () => {
                 <option value="">Select a product variant</option>
                 {allVariants.map((variant) => (
                   <option key={variant.id} value={variant.id}>
-                    {variant.productName} – {variant.color || ''} / {variant.size || ''} – {variant.sku}
+                    {variant.productName} — {variant.color || ''} — {variant.size || ''} ({variant.sku})
                   </option>
                 ))}
               </Input>

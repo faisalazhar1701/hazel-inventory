@@ -38,21 +38,23 @@ const Sidebar = ({ layoutType } : any) => {
     <React.Fragment>
       <div className="app-menu navbar-menu">
         <div className="navbar-brand-box">
-          <Link to="/" className="logo logo-dark">
+          <Link to="/" className="logo logo-dark text-decoration-none d-flex align-items-center">
             <span className="logo-sm">
-              <img src={logoSm} alt="" height="22" />
+              <img src={logoSm} alt="Hazel" height="22" />
             </span>
-            <span className="logo-lg">
-              <img src={logoDark} alt="" height="17" />
+            <span className="logo-lg d-flex align-items-center">
+              <img src={logoDark} alt="Hazel" height="17" className="me-2" />
+              <span className="text-dark fw-semibold small">Hazel Inventory System</span>
             </span>
           </Link>
 
-          <Link to="/" className="logo logo-light">
+          <Link to="/" className="logo logo-light text-decoration-none d-flex align-items-center">
             <span className="logo-sm">
-              <img src={logoSm} alt="" height="22" />
+              <img src={logoSm} alt="Hazel" height="22" />
             </span>
-            <span className="logo-lg">
-              <img src={logoLight} alt="" height="17" />
+            <span className="logo-lg d-flex align-items-center">
+              <img src={logoLight} alt="Hazel" height="17" className="me-2" />
+              <span className="text-white fw-semibold small">Hazel Inventory System</span>
             </span>
           </Link>
           <button

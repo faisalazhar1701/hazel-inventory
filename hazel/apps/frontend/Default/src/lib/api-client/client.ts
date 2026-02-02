@@ -88,16 +88,31 @@ export class ApiClient {
 
       clearTimeout(timeoutId);
 
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
       const contentType = response.headers.get('content-type');
-      if (contentType && contentType.includes('application/json')) {
-        return await response.json();
+      const isJson = contentType && contentType.includes('application/json');
+      const text = await response.text();
+
+      if (!response.ok) {
+        let message = `HTTP error! status: ${response.status}`;
+        if (isJson && text) {
+          try {
+            const body = JSON.parse(text);
+            if (body?.message) {
+              message = Array.isArray(body.message) ? body.message.join(', ') : body.message;
+            } else if (body?.error) {
+              message = body.error;
+            }
+          } catch {
+            // use default message
+          }
+        }
+        throw new Error(message);
       }
 
-      return (await response.text()) as T;
+      if (isJson && text) {
+        return JSON.parse(text) as T;
+      }
+      return text as T;
     } catch (error) {
       clearTimeout(timeoutId);
       if (error instanceof Error && error.name === 'AbortError') {

@@ -374,14 +374,22 @@ export class DashboardService {
 
   /**
    * Get Inventory Dashboard
-   * Inventory and warehouse metrics
+   * Inventory and warehouse metrics. Never throws — returns safe defaults on error.
    */
   async getInventoryDashboard(filters?: DashboardFilters): Promise<InventoryDashboard> {
-    // Get inventory valuation
-    const inventoryValuation = await this.financeService.getInventoryValuation({
-      warehouseId: filters?.warehouseId,
-    });
-    const inventoryValue = inventoryValuation.totalValue;
+    const safe: InventoryDashboard = {
+      inventoryValue: 0,
+      lowStockVariantsCount: 0,
+      stockTurnover: 0,
+      warehousesWithHighestMovement: [],
+      currency: 'USD',
+    };
+    try {
+      // Get inventory valuation
+      const inventoryValuation = await this.financeService.getInventoryValuation({
+        warehouseId: filters?.warehouseId,
+      });
+      const inventoryValue = inventoryValuation?.totalValue ?? 0;
 
     // Get low stock variants (quantity < 10)
     const lowStockCount = await this.prisma.inventoryItem.count({
@@ -449,7 +457,7 @@ export class DashboardService {
     }
 
     // Get inventory values per warehouse
-    const warehouseValuations = inventoryValuation.byWarehouse;
+    const warehouseValuations = inventoryValuation?.byWarehouse ?? [];
     for (const valuation of warehouseValuations) {
       const existing = warehouseMap.get(valuation.warehouseId);
       if (existing) {
@@ -467,13 +475,17 @@ export class DashboardService {
       .sort((a, b) => b.inventoryMovements - a.inventoryMovements)
       .slice(0, 10); // Top 10
 
-    return {
-      inventoryValue,
-      lowStockVariantsCount: lowStockCount,
-      stockTurnover,
-      warehousesWithHighestMovement,
-      currency: inventoryValuation.currency,
-    };
+      return {
+        inventoryValue,
+        lowStockVariantsCount: lowStockCount,
+        stockTurnover,
+        warehousesWithHighestMovement,
+        currency: inventoryValuation?.currency ?? 'USD',
+      };
+    } catch (err) {
+      this.logger.warn(`getInventoryDashboard error: ${err instanceof Error ? err.message : err}`);
+      return safe;
+    }
   }
 
   /**

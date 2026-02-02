@@ -81,7 +81,7 @@ const Header = ({ onChangeLayoutMode, layoutModeType, headerClass } : any) => {
                                     </span>
                                     <span className="logo-lg d-flex align-items-center">
                                         <img src={logoDark} alt="Hazel" height="17" className="me-2" />
-                                        <span className="text-dark fw-semibold">Hazel Inventory</span>
+                                        <span className="text-dark fw-semibold">Hazel Inventory System</span>
                                     </span>
                                 </Link>
 
@@ -91,7 +91,7 @@ const Header = ({ onChangeLayoutMode, layoutModeType, headerClass } : any) => {
                                     </span>
                                     <span className="logo-lg d-flex align-items-center">
                                         <img src={logoLight} alt="Hazel" height="17" className="me-2" />
-                                        <span className="text-white fw-semibold">Hazel Inventory</span>
+                                        <span className="text-white fw-semibold">Hazel Inventory System</span>
                                     </span>
                                 </Link>
                             </div>

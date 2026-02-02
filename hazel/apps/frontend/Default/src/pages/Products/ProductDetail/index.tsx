@@ -14,10 +14,17 @@ import {
   TabPane,
   Spinner,
   Badge,
+  Button,
+  Modal,
+  ModalHeader,
+  ModalBody,
+  ModalFooter,
 } from 'reactstrap';
 import classnames from 'classnames';
 import BreadCrumb from '../../../Components/Common/BreadCrumb';
 import { productsAPI, ProductWithVariants } from '../../../api/products';
+import FeatherIcon from 'feather-icons-react';
+import { toast } from 'react-toastify';
 import ProductInfoTab from './ProductInfoTab';
 import VariantsTab from './VariantsTab';
 import BomTab from './BomTab';
@@ -32,6 +39,8 @@ const ProductDetail = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState('1');
+  const [deleteModal, setDeleteModal] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     if (id) {
@@ -63,6 +72,23 @@ const ProductDetail = () => {
     };
     const statusInfo = statusMap[status] || { color: 'secondary', label: status };
     return <Badge className={`badge-soft-${statusInfo.color}`}>{statusInfo.label}</Badge>;
+  };
+
+  const handleDeleteClick = () => setDeleteModal(true);
+  const handleDeleteCancel = () => setDeleteModal(false);
+  const handleDeleteConfirm = async () => {
+    if (!product?.id) return;
+    setDeleting(true);
+    try {
+      await productsAPI.deleteProduct(product.id);
+      toast.success('Product deleted');
+      navigate('/products');
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to delete product');
+    } finally {
+      setDeleting(false);
+      setDeleteModal(false);
+    }
   };
 
   if (loading) {
@@ -107,6 +133,11 @@ const ProductDetail = () => {
                       <h5 className="card-title mb-0">
                         {product.name} {getStatusBadge(product.lifecycleStatus)}
                       </h5>
+                    </Col>
+                    <Col xs="auto">
+                      <Button color="danger" size="sm" outline onClick={handleDeleteClick} title="Delete product">
+                        <FeatherIcon icon="trash-2" size={16} />
+                      </Button>
                     </Col>
                   </Row>
                 </CardHeader>
@@ -187,6 +218,19 @@ const ProductDetail = () => {
           </Row>
         </Container>
       </div>
+
+      <Modal isOpen={deleteModal} toggle={handleDeleteCancel}>
+        <ModalHeader toggle={handleDeleteCancel}>Delete Product</ModalHeader>
+        <ModalBody>
+          Are you sure you want to delete <strong>{product?.name}</strong>? Variants and BOM will be removed. This cannot be undone.
+        </ModalBody>
+        <ModalFooter>
+          <Button color="light" onClick={handleDeleteCancel} disabled={deleting}>Cancel</Button>
+          <Button color="danger" onClick={handleDeleteConfirm} disabled={deleting}>
+            {deleting ? 'Deleting...' : 'Delete'}
+          </Button>
+        </ModalFooter>
+      </Modal>
     </React.Fragment>
   );
 };

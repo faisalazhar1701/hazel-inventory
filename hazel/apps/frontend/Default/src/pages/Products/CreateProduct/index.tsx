@@ -65,32 +65,30 @@ const CreateProduct = () => {
     onSubmit: async (values) => {
       setLoading(true);
       try {
-        // Step 1: Create product
+        // Step 1: Create product — payload must be exactly: name, description, collectionId, lifecycleStatus, imageUrl (no sku, variants, colors, sizes, BOM)
         const productData: CreateProductDto = {
-          name: values.name,
-          description: values.description || undefined,
-          imageUrl: imageUrl || undefined,
+          name: values.name.trim(),
+          description: values.description?.trim() || undefined,
+          imageUrl: imageUrl?.trim() || undefined,
+          collectionId: values.collectionId?.trim() || undefined,
           lifecycleStatus: values.lifecycleStatus,
-          collectionId: values.collectionId || undefined,
         };
         const product = await productsAPI.createProduct(productData);
 
         // Step 2: Create variants
         if (variants.length > 0) {
           for (const variant of variants) {
-            if (variant.status === 'Active') {
-              try {
-                const variantData: CreateProductVariantDto = {
-                  color: variant.color,
-                  size: variant.size,
-                  price: variant.price || 0,
-                  status: variant.status === 'Active' ? 'ACTIVE' : 'INACTIVE',
-                };
-                await productsAPI.createVariant(product.id, variantData);
-              } catch (error) {
-                console.error('Failed to create variant:', error);
-                toast.warning(`Failed to create variant ${variant.color}/${variant.size}`);
-              }
+            try {
+              const variantData: CreateProductVariantDto = {
+                color: variant.color,
+                size: variant.size,
+                price: variant.price ?? 0,
+                status: (variant.status === 'Active' ? 'ACTIVE' : 'INACTIVE'),
+              };
+              await productsAPI.createVariant(product.id, variantData);
+            } catch (error) {
+              console.error('Failed to create variant:', error);
+              toast.warning(`Failed to create variant ${variant.color}/${variant.size}`);
             }
           }
         }
@@ -166,21 +164,6 @@ const CreateProduct = () => {
                           {validation.touched.name && validation.errors.name && (
                             <FormFeedback type="invalid">{validation.errors.name}</FormFeedback>
                           )}
-                        </div>
-                      </Col>
-                      <Col md={6}>
-                        <div className="mb-3">
-                          <Label className="form-label">
-                            SKU
-                          </Label>
-                          <Input
-                            type="text"
-                            name="sku"
-                            value=""
-                            readOnly
-                            disabled
-                            placeholder="Variant SKUs will be generated automatically"
-                          />
                         </div>
                       </Col>
                       <Col md={12}>

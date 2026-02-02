@@ -61,6 +61,10 @@ const VariantBuilder: React.FC<VariantBuilderProps> = ({
     );
   }, []);
 
+  // SKU preview: STYLECODE-COLOR-SIZE (finalized by backend)
+  const toStyleCode = (s: string) =>
+    (s || 'PROD').replace(/\s+/g, '-').replace(/[^A-Za-z0-9-]/g, '').toUpperCase() || 'PROD';
+
   // Auto-generate variants when colors or selected sizes change
   useEffect(() => {
     if (!colors.length || !selectedSizes.length) {
@@ -171,7 +175,9 @@ const VariantBuilder: React.FC<VariantBuilderProps> = ({
             <Table className="table-nowrap align-middle mb-0">
               <thead className="table-light">
                 <tr>
-                  <th>Variant (Color / Size)</th>
+                  <th>SKU (auto)</th>
+                  <th>Color</th>
+                  <th>Size</th>
                   <th>Price</th>
                   <th>Status</th>
                   <th className="text-end">Actions</th>
@@ -181,10 +187,12 @@ const VariantBuilder: React.FC<VariantBuilderProps> = ({
                 {variants.map((variant, index) => (
                   <tr key={`${variant.color}-${variant.size}-${index}`}>
                     <td>
-                      <strong>
-                        {variant.color} / {variant.size}
-                      </strong>
+                      <code className="text-muted small">
+                        {toStyleCode(productCode)}-{(variant.color || '').replace(/\s+/g, '-').replace(/[^A-Za-z0-9-]/g, '').toUpperCase() || 'COLOR'}-{variant.size}
+                      </code>
                     </td>
+                    <td>{variant.color}</td>
+                    <td>{variant.size}</td>
                     <td>
                       <Input
                         type="number"

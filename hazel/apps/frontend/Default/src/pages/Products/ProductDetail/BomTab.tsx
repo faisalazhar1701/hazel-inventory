@@ -29,7 +29,7 @@ const BomTab: React.FC<BomTabProps> = ({ product, onReload }) => {
     initialValues: {
       parentVariantId: '',
       componentName: '',
-      category: 'Fabric',
+      category: 'FABRIC',
       quantity: 1,
       unit: 'm',
     },
@@ -46,7 +46,7 @@ const BomTab: React.FC<BomTabProps> = ({ product, onReload }) => {
         const data: CreateBomDto = {
           variantId: values.parentVariantId,
           componentName: values.componentName,
-          category: values.category.toUpperCase(),
+          category: values.category,
           quantity: values.quantity,
           unit: values.unit,
         };
@@ -190,10 +190,10 @@ const BomTab: React.FC<BomTabProps> = ({ product, onReload }) => {
                 onChange={validation.handleChange}
                 invalid={validation.touched.category && validation.errors.category ? true : false}
               >
-                <option value="Fabric">Fabric</option>
-                <option value="Trim">Trim</option>
-                <option value="Packaging">Packaging</option>
-                <option value="Other">Other</option>
+                <option value="FABRIC">FABRIC</option>
+                <option value="TRIM">TRIM</option>
+                <option value="PACKAGING">PACKAGING</option>
+                <option value="OTHER">OTHER</option>
               </Input>
               {validation.touched.category && validation.errors.category && (
                 <FormFeedback type="invalid">{validation.errors.category}</FormFeedback>
