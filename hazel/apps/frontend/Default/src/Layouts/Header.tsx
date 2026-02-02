@@ -9,11 +9,6 @@ import logoLight from "../assets/images/logo-light.png";
 
 //import Components
 import SearchOption from '../Components/Common/SearchOption';
-import LanguageDropdown from '../Components/Common/LanguageDropdown';
-import WebAppsDropdown from '../Components/Common/WebAppsDropdown';
-import MyCartDropdown from '../Components/Common/MyCartDropdown';
-import FullScreenDropdown from '../Components/Common/FullScreenDropdown';
-import NotificationDropdown from '../Components/Common/NotificationDropdown';
 import ProfileDropdown from '../Components/Common/ProfileDropdown';
 import LightDark from '../Components/Common/LightDark';
 
@@ -79,22 +74,24 @@ const Header = ({ onChangeLayoutMode, layoutModeType, headerClass } : any) => {
                     <div className="navbar-header">
                         <div className="d-flex">
 
-                            <div className="navbar-brand-box horizontal-logo">
-                                <Link to="/" className="logo logo-dark">
+                            <div className="navbar-brand-box horizontal-logo d-flex align-items-center">
+                                <Link to="/" className="logo logo-dark d-flex align-items-center text-decoration-none">
                                     <span className="logo-sm">
-                                        <img src={logoSm} alt="" height="22" />
+                                        <img src={logoSm} alt="Hazel" height="22" />
                                     </span>
-                                    <span className="logo-lg">
-                                        <img src={logoDark} alt="" height="17" />
+                                    <span className="logo-lg d-flex align-items-center">
+                                        <img src={logoDark} alt="Hazel" height="17" className="me-2" />
+                                        <span className="text-dark fw-semibold">Hazel Inventory</span>
                                     </span>
                                 </Link>
 
-                                <Link to="/" className="logo logo-light">
+                                <Link to="/" className="logo logo-light d-flex align-items-center text-decoration-none">
                                     <span className="logo-sm">
-                                        <img src={logoSm} alt="" height="22" />
+                                        <img src={logoSm} alt="Hazel" height="22" />
                                     </span>
-                                    <span className="logo-lg">
-                                        <img src={logoLight} alt="" height="17" />
+                                    <span className="logo-lg d-flex align-items-center">
+                                        <img src={logoLight} alt="Hazel" height="17" className="me-2" />
+                                        <span className="text-white fw-semibold">Hazel Inventory</span>
                                     </span>
                                 </Link>
                             </div>
@@ -135,26 +132,11 @@ const Header = ({ onChangeLayoutMode, layoutModeType, headerClass } : any) => {
                                 </DropdownMenu>
                             </Dropdown>
 
-                            {/* LanguageDropdown */}
-                            <LanguageDropdown />
-
-                            {/* WebAppsDropdown */}
-                            <WebAppsDropdown />
-
-                            {/* MyCartDropdwon */}
-                            <MyCartDropdown />
-
-                            {/* FullScreenDropdown */}
-                            <FullScreenDropdown />
-
                             {/* Dark/Light Mode set */}
                             <LightDark
                                 layoutMode={layoutModeType}
                                 onChangeLayoutMode={onChangeLayoutMode}
                             />
-
-                            {/* NotificationDropdown */}
-                            <NotificationDropdown />
 
                             {/* ProfileDropdown */}
                             <ProfileDropdown />

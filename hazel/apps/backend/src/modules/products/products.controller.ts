@@ -5,6 +5,7 @@ import {
   Body,
   Param,
   Patch,
+  Delete,
   HttpCode,
   HttpStatus,
   BadRequestException,
@@ -41,6 +42,12 @@ export class ProductsController {
   @Get()
   async listProducts() {
     return this.productsService.listProducts();
+  }
+
+  @Delete(':id')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async remove(@Param('id') id: string) {
+    await this.productsService.remove(id);
   }
 
   @Get(':id')

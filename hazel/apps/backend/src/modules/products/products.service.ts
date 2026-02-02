@@ -2,53 +2,11 @@ import { Injectable, NotFoundException, BadRequestException } from '@nestjs/comm
 import { PrismaService } from '../prisma/prisma.service';
 import { Product, ProductVariant, BillOfMaterial } from '@prisma/client';
 import { IsString, IsNotEmpty, IsOptional, IsNumber, Min, IsIn } from 'class-validator';
+import { CreateProductDto, ProductLifecycleStatus } from './dto/create-product.dto';
+import { CreateProductVariantDto } from './dto/create-product-variant.dto';
 
-export type ProductLifecycleStatus = 'DRAFT' | 'ACTIVE' | 'DISCONTINUED';
-
-export class CreateProductDto {
-  @IsString()
-  @IsNotEmpty()
-  name: string;
-
-  @IsString()
-  @IsOptional()
-  description?: string;
-
-  @IsString()
-  @IsOptional()
-  imageUrl?: string;
-
-  @IsString()
-  @IsIn(['DRAFT', 'ACTIVE', 'DISCONTINUED'])
-  @IsOptional()
-  lifecycleStatus?: ProductLifecycleStatus;
-
-  @IsString()
-  @IsOptional()
-  collectionId?: string;
-}
-
-export class CreateProductVariantDto {
-  @IsString()
-  @IsNotEmpty()
-  productId: string;
-
-  @IsString()
-  @IsNotEmpty()
-  color: string;
-
-  @IsString()
-  @IsOptional()
-  size?: string;
-
-  @IsNumber()
-  @Min(0)
-  price: number;
-
-  @IsString()
-  @IsOptional()
-  status?: string;
-}
+export { CreateProductDto, ProductLifecycleStatus } from './dto/create-product.dto';
+export { CreateProductVariantDto } from './dto/create-product-variant.dto';
 
 export class CreateBomDto {
   @IsString()
@@ -111,25 +69,23 @@ export class AssignProductRelationsDto {
 export class ProductsService {
   constructor(private prisma: PrismaService) {}
 
-  async createProduct(data: CreateProductDto): Promise<Product> {
+  async createProduct(dto: CreateProductDto): Promise<Product> {
     try {
-      // Verify collection exists if collectionId is provided
-      if (data.collectionId) {
+      if (dto.collectionId) {
         const collection = await this.prisma.collection.findUnique({
-          where: { id: data.collectionId },
+          where: { id: dto.collectionId },
         });
         if (!collection) {
-          throw new NotFoundException(`Collection with ID ${data.collectionId} not found`);
+          throw new NotFoundException(`Collection with ID ${dto.collectionId} not found`);
         }
       }
-
       return await this.prisma.product.create({
         data: {
-          name: data.name?.trim() ?? '',
-          description: data.description?.trim() || null,
-          imageUrl: data.imageUrl?.trim() || null,
-          lifecycleStatus: data.lifecycleStatus || 'DRAFT',
-          collectionId: data.collectionId || null,
+          name: dto.name?.trim() ?? '',
+          description: dto.description?.trim() || null,
+          imageUrl: dto.imageUrl?.trim() || null,
+          lifecycleStatus: dto.lifecycleStatus ?? 'DRAFT',
+          collectionId: dto.collectionId || null,
         },
       });
     } catch (err) {
@@ -138,6 +94,18 @@ export class ProductsService {
         err instanceof Error ? err.message : 'Failed to create product',
       );
     }
+  }
+
+  async remove(id: string): Promise<void> {
+    const product = await this.prisma.product.findUnique({
+      where: { id },
+    });
+    if (!product) {
+      throw new NotFoundException(`Product with ID ${id} not found`);
+    }
+    await this.prisma.product.delete({
+      where: { id },
+    });
   }
 
   async listProducts(): Promise<Product[]> {

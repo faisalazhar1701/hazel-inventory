@@ -12,10 +12,15 @@ import {
   Spinner,
   Badge,
   ButtonGroup,
+  Modal,
+  ModalHeader,
+  ModalBody,
+  ModalFooter,
 } from 'reactstrap';
 import BreadCrumb from '../../../Components/Common/BreadCrumb';
 import { productsAPI, Product } from '../../../api/products';
 import FeatherIcon from 'feather-icons-react';
+import { toast } from 'react-toastify';
 
 type ViewMode = 'grid' | 'list';
 
@@ -24,6 +29,8 @@ const ProductList = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<ViewMode>('grid');
+  const [deleteTarget, setDeleteTarget] = useState<Product | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     document.title = 'Products | Hazel Inventory';
@@ -55,6 +62,24 @@ const ProductList = () => {
 
   const getVariantCount = (product: Product) => {
     return product.variants?.length || 0;
+  };
+
+  const handleDeleteClick = (product: Product) => setDeleteTarget(product);
+  const handleDeleteCancel = () => setDeleteTarget(null);
+
+  const handleDeleteConfirm = async () => {
+    if (!deleteTarget) return;
+    setDeleting(true);
+    try {
+      await productsAPI.deleteProduct(deleteTarget.id);
+      toast.success('Product deleted');
+      setDeleteTarget(null);
+      loadProducts();
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to delete product');
+    } finally {
+      setDeleting(false);
+    }
   };
 
   return (
@@ -182,6 +207,15 @@ const ProductList = () => {
                                     Inventory
                                   </Button>
                                 </Link>
+                                <Button
+                                  color="soft-danger"
+                                  size="sm"
+                                  className="flex-fill"
+                                  onClick={() => handleDeleteClick(product)}
+                                  title="Delete product"
+                                >
+                                  <FeatherIcon icon="trash-2" size={14} />
+                                </Button>
                               </div>
                             </CardBody>
                           </Card>
@@ -194,7 +228,6 @@ const ProductList = () => {
                         <thead className="table-light">
                           <tr>
                             <th scope="col" style={{ width: '80px' }}>Image</th>
-                            <th scope="col">Name</th>
                             <th scope="col">Name</th>
                             <th scope="col">Collection</th>
                             <th scope="col">Variants</th>
@@ -223,7 +256,7 @@ const ProductList = () => {
                                   </div>
                                 )}
                               </td>
-                              <td>{product.name}</td>
+                              <td className="fw-medium">{product.name}</td>
                               <td>
                                 {product.collection ? (
                                   <span className="text-muted">
@@ -256,10 +289,18 @@ const ProductList = () => {
                                   </Button>
                                 </Link>
                                 <Link to={`/products/${product.id}/inventory`}>
-                                  <Button color="soft-success" size="sm">
+                                  <Button color="soft-success" size="sm" className="me-1">
                                     <FeatherIcon icon="package" size={14} />
                                   </Button>
                                 </Link>
+                                <Button
+                                  color="soft-danger"
+                                  size="sm"
+                                  onClick={() => handleDeleteClick(product)}
+                                  title="Delete product"
+                                >
+                                  <FeatherIcon icon="trash-2" size={14} />
+                                </Button>
                               </td>
                             </tr>
                           ))}
@@ -273,6 +314,22 @@ const ProductList = () => {
           </Row>
         </Container>
       </div>
+
+      {/* Delete confirmation modal */}
+      <Modal isOpen={!!deleteTarget} toggle={handleDeleteCancel}>
+        <ModalHeader toggle={handleDeleteCancel}>Delete Product</ModalHeader>
+        <ModalBody>
+          {deleteTarget && (
+            <>Are you sure you want to delete <strong>{deleteTarget.name}</strong>? This cannot be undone.</>
+          )}
+        </ModalBody>
+        <ModalFooter>
+          <Button color="light" onClick={handleDeleteCancel} disabled={deleting}>Cancel</Button>
+          <Button color="danger" onClick={handleDeleteConfirm} disabled={deleting}>
+            {deleting ? 'Deleting...' : 'Delete'}
+          </Button>
+        </ModalFooter>
+      </Modal>
     </React.Fragment>
   );
 };

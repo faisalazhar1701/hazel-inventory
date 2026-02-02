@@ -137,6 +137,10 @@ class ProductsAPI {
     return apiClient.patch<Product>(`${this.basePath}/${id}/lifecycle`, data);
   }
 
+  async deleteProduct(id: string): Promise<void> {
+    return apiClient.delete<void>(`${this.basePath}/${id}`);
+  }
+
   async assignRelations(id: string, data: AssignProductRelationsDto): Promise<Product> {
     return apiClient.patch<Product>(`${this.basePath}/${id}/assign`, data);
   }
