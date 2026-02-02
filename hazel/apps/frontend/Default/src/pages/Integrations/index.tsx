@@ -20,7 +20,7 @@ import {
   Alert,
 } from 'reactstrap';
 import BreadCrumb from '../../Components/Common/BreadCrumb';
-import { integrationsAPI, Webhook, IntegrationLog, CreateWebhookDto } from '../../api/integrations';
+import { integrationsAPI, Webhook, IntegrationLog } from '../../api/integrations';
 import { toast } from 'react-toastify';
 import FeatherIcon from 'feather-icons-react';
 import { useFormik } from 'formik';
@@ -32,7 +32,7 @@ const IntegrationsPage: React.FC = () => {
   const [webhooks, setWebhooks] = useState<Webhook[]>([]);
   const [logs, setLogs] = useState<IntegrationLog[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [, setError] = useState<string | null>(null);
   const [isWebhookModalOpen, setIsWebhookModalOpen] = useState(false);
   const [isImportModalOpen, setIsImportModalOpen] = useState(false);
   const [testingWebhookId, setTestingWebhookId] = useState<string | null>(null);
@@ -40,7 +40,6 @@ const IntegrationsPage: React.FC = () => {
 
   useEffect(() => {
     loadData();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const loadData = async () => {

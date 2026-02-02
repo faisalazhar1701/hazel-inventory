@@ -7,7 +7,6 @@ import {
   Button,
   Input,
   Label,
-  FormFeedback,
 } from 'reactstrap';
 import { assetsAPI } from '../../api/assets';
 import { toast } from 'react-toastify';

@@ -1,16 +1,30 @@
-# Frontend UI
+## Hazel Frontend (React)
 
-This folder contains the paid React + TypeScript UI.
+This folder contains the paid **React + TypeScript** UI used by Hazel.
 
-## UI Design Lock Notice
+### Structure
 
-**This UI is a paid design.**
-- Visual structure, layout, and styling are **LOCKED**.
-- Only data wiring and required fields may be added.
-- **No redesign or optimization allowed.**
+- `Default/` – main Hazel app, wired to the NestJS backend
+- Other folders (`Saas/`, `Modern/`, `Minimal/`, etc.) – design templates and demo themes, not used in production
 
-## Setup
+### UI design lock
 
-Do not scaffold a new React app.
-The UI has been pasted here manually.
+- **Design is paid and locked**:
+  - No layout or visual redesigns
+  - Only data wiring and required fields should be changed
+
+### Running the main frontend
+
+From `apps/frontend/Default`:
+
+```bash
+npm install
+
+# create .env and point to backend API
+echo 'REACT_APP_API_URL=http://localhost:3000' > .env
+
+npm run dev
+```
+
+The app will start on the port configured by Vite (usually `5173`).
 

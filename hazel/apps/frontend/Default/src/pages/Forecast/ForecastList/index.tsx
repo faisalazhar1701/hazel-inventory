@@ -35,6 +35,7 @@ const ForecastList: React.FC = () => {
   useEffect(() => {
     loadProductVariants();
     loadForecasts();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const loadProductVariants = async () => {

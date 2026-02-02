@@ -46,10 +46,12 @@ const StockMovements: React.FC = () => {
     loadStockMovements();
     loadWarehouses();
     loadProducts();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
     loadStockMovements();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filterWarehouse, filterVariant]);
 
   const loadWarehouses = async () => {
@@ -154,7 +156,6 @@ const StockMovements: React.FC = () => {
     (product.variants || []).map((variant: any) => ({
       ...variant,
       productName: product.name,
-      productSku: product.sku,
     }))
   );
 
@@ -284,7 +285,6 @@ const StockMovements: React.FC = () => {
                               <td>
                                 <div>
                                   <strong>{movement.inventoryItem.productVariant.product.name}</strong>
-                                  <div className="text-muted small">SKU: {movement.inventoryItem.productVariant.product.sku}</div>
                                 </div>
                               </td>
                               <td>

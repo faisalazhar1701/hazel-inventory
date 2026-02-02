@@ -112,25 +112,32 @@ export class ProductsService {
   constructor(private prisma: PrismaService) {}
 
   async createProduct(data: CreateProductDto): Promise<Product> {
-    // Verify collection exists if collectionId is provided
-    if (data.collectionId) {
-      const collection = await this.prisma.collection.findUnique({
-        where: { id: data.collectionId },
-      });
-      if (!collection) {
-        throw new NotFoundException(`Collection with ID ${data.collectionId} not found`);
+    try {
+      // Verify collection exists if collectionId is provided
+      if (data.collectionId) {
+        const collection = await this.prisma.collection.findUnique({
+          where: { id: data.collectionId },
+        });
+        if (!collection) {
+          throw new NotFoundException(`Collection with ID ${data.collectionId} not found`);
+        }
       }
-    }
 
-    return this.prisma.product.create({
-      data: {
-        name: data.name,
-        description: data.description,
-        imageUrl: data.imageUrl || null,
-        lifecycleStatus: data.lifecycleStatus || 'DRAFT',
-        collectionId: data.collectionId || null,
-      },
-    });
+      return await this.prisma.product.create({
+        data: {
+          name: data.name?.trim() ?? '',
+          description: data.description?.trim() || null,
+          imageUrl: data.imageUrl?.trim() || null,
+          lifecycleStatus: data.lifecycleStatus || 'DRAFT',
+          collectionId: data.collectionId || null,
+        },
+      });
+    } catch (err) {
+      if (err instanceof NotFoundException) throw err;
+      throw new BadRequestException(
+        err instanceof Error ? err.message : 'Failed to create product',
+      );
+    }
   }
 
   async listProducts(): Promise<Product[]> {
@@ -199,7 +206,6 @@ export class ProductsService {
   }
 
   async createProductVariant(data: CreateProductVariantDto): Promise<ProductVariant> {
-    // Verify product exists
     const product = await this.prisma.product.findUnique({
       where: { id: data.productId },
     });
@@ -207,35 +213,96 @@ export class ProductsService {
       throw new NotFoundException(`Product with ID ${data.productId} not found`);
     }
 
-    // Auto-generate SKU based on product and variant attributes
+    const color = data.color?.trim() ?? '';
+    const size = (data.size?.trim() ?? '') || '';
+
+    // Prevent duplicate color+size per product
+    const duplicate = await this.prisma.productVariant.findFirst({
+      where: {
+        productId: data.productId,
+        color,
+        size,
+      },
+    });
+    if (duplicate) {
+      throw new BadRequestException(
+        `Variant already exists for color "${color}" and size "${size}". Use a different combination.`,
+      );
+    }
+
     const baseSku = product.name.replace(/\s+/g, '-').toUpperCase();
-    const colorPart = data.color.replace(/\s+/g, '-').toUpperCase();
-    const sizePart = (data.size || '').replace(/\s+/g, '-').toUpperCase();
+    const colorPart = color.replace(/\s+/g, '-').toUpperCase();
+    const sizePart = size.replace(/\s+/g, '-').toUpperCase();
     const rawSku = [baseSku, colorPart, sizePart].filter(Boolean).join('-');
 
-    // Ensure SKU uniqueness by appending a counter if needed
     let sku = rawSku;
     let counter = 1;
-    // eslint-disable-next-line no-constant-condition
     while (true) {
       const existing = await this.prisma.productVariant.findUnique({
         where: { sku },
       });
       if (!existing) break;
-      counter += 1;
       sku = `${rawSku}-${counter}`;
+      counter += 1;
     }
 
-    return this.prisma.productVariant.create({
-      data: {
-        productId: data.productId,
-        sku,
-        color: data.color,
-        size: data.size || '',
-        price: data.price,
-        status: data.status || 'ACTIVE',
-      },
+    try {
+      return await this.prisma.productVariant.create({
+        data: {
+          productId: data.productId,
+          sku,
+          color,
+          size,
+          price: data.price,
+          status: data.status || 'ACTIVE',
+        },
+      });
+    } catch (err) {
+      if (err instanceof NotFoundException || err instanceof BadRequestException) throw err;
+      throw new BadRequestException(
+        err instanceof Error ? err.message : 'Failed to create variant',
+      );
+    }
+  }
+
+  /**
+   * Bulk create variants for a product (color × size matrix).
+   * Skips duplicate color+size; returns created and skipped counts.
+   */
+  async createProductVariantsBulk(
+    productId: string,
+    items: Omit<CreateProductVariantDto, 'productId'>[],
+  ): Promise<{ created: ProductVariant[]; skipped: number; errors: string[] }> {
+    const product = await this.prisma.product.findUnique({
+      where: { id: productId },
     });
+    if (!product) {
+      throw new NotFoundException(`Product with ID ${productId} not found`);
+    }
+
+    const created: ProductVariant[] = [];
+    let skipped = 0;
+    const errors: string[] = [];
+
+    for (const item of items) {
+      try {
+        const variant = await this.createProductVariant({
+          ...item,
+          productId,
+        });
+        created.push(variant);
+      } catch (err) {
+        if (err instanceof BadRequestException && err.message.includes('already exists')) {
+          skipped += 1;
+        } else {
+          errors.push(
+            `${item.color}/${item.size || ''}: ${err instanceof Error ? err.message : 'Unknown error'}`,
+          );
+        }
+      }
+    }
+
+    return { created, skipped, errors };
   }
 
   async listVariantsByProduct(productId: string): Promise<ProductVariant[]> {

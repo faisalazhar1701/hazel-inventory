@@ -17,17 +17,12 @@ interface BomComponent {
   category: string;
   quantity: number;
   unit: string;
-  parentVariantSku: string;
-  componentVariantSku: string;
-  componentVariantId: string;
-  parentVariantId: string;
+  variantSku: string;
 }
 
 const BomTab: React.FC<BomTabProps> = ({ product, onReload }) => {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [loading, setLoading] = useState(false);
-
-  const availableVariants = product.variants || [];
 
   const validation = useFormik({
     enableReinitialize: true,
@@ -37,22 +32,23 @@ const BomTab: React.FC<BomTabProps> = ({ product, onReload }) => {
       category: 'Fabric',
       quantity: 1,
       unit: 'm',
-      componentVariantId: '',
     },
     validationSchema: Yup.object({
-      parentVariantId: Yup.string().required('Parent variant is required'),
+      parentVariantId: Yup.string().required('Variant is required'),
       componentName: Yup.string().required('Component name is required'),
       category: Yup.string().required('Category is required'),
       quantity: Yup.number().min(0.01, 'Quantity must be greater than 0').required('Quantity is required'),
       unit: Yup.string().required('Unit is required'),
-      componentVariantId: Yup.string().required('Component variant is required'),
     }),
     onSubmit: async (values) => {
       setLoading(true);
       try {
         const data: CreateBomDto = {
-          componentVariantId: values.componentVariantId,
+          variantId: values.parentVariantId,
+          componentName: values.componentName,
+          category: values.category.toUpperCase(),
           quantity: values.quantity,
+          unit: values.unit,
         };
         await productsAPI.createBom(values.parentVariantId, data);
         toast.success('BOM component added successfully');
@@ -67,42 +63,28 @@ const BomTab: React.FC<BomTabProps> = ({ product, onReload }) => {
     },
   });
 
-  // Collect all BOM entries and format them for display
-  const bomComponents: BomComponent[] = product.variants?.flatMap((variant) =>
-    variant.bomAsParent?.map((bom) => {
-      // Try to extract component name from variant attributes or use SKU
-      let componentName = bom.componentVariant?.sku || 'Unknown';
-      try {
-        const attrs = bom.componentVariant?.attributes ? JSON.parse(bom.componentVariant.attributes) : null;
-        if (attrs) {
-          componentName = `${attrs.color || ''} ${attrs.size || ''}`.trim() || componentName;
-        }
-      } catch {
-        // Use SKU if parsing fails
-      }
-
-      return {
+  // Collect all BOM entries for display (no internal IDs exposed to user)
+  const bomComponents: BomComponent[] =
+    product.variants?.flatMap((variant) =>
+      (variant as { bomComponents?: Array<{ id: string; componentName: string; category: string; quantity: number; unit: string }> }).bomComponents?.map((bom) => ({
         id: bom.id,
-        componentName,
-        category: 'Fabric', // Default category, can be enhanced later
+        componentName: bom.componentName,
+        category: bom.category,
         quantity: bom.quantity,
-        unit: 'm', // Default unit, can be enhanced later
-        parentVariantSku: variant.sku,
-        componentVariantSku: bom.componentVariant?.sku || '',
-        componentVariantId: bom.componentVariantId,
-        parentVariantId: bom.parentVariantId,
-      };
-    }) || []
-  ) || [];
+        unit: bom.unit,
+        variantSku: variant.sku,
+      })) || [],
+    ) || [];
 
   const getCategoryBadge = (category: string) => {
+    const c = (category || '').toUpperCase();
     const categoryColors: Record<string, string> = {
-      Fabric: 'primary',
-      Trim: 'success',
-      Packaging: 'info',
-      Other: 'secondary',
+      FABRIC: 'primary',
+      TRIM: 'success',
+      PACKAGING: 'info',
+      OTHER: 'secondary',
     };
-    return categoryColors[category] || 'secondary';
+    return categoryColors[c] || 'secondary';
   };
 
   return (
@@ -124,7 +106,7 @@ const BomTab: React.FC<BomTabProps> = ({ product, onReload }) => {
                 <th>Category</th>
                 <th>Quantity</th>
                 <th>Unit</th>
-                <th>Parent Variant</th>
+                <th>Variant (SKU)</th>
                 <th className="text-end">Actions</th>
               </tr>
             </thead>
@@ -140,7 +122,7 @@ const BomTab: React.FC<BomTabProps> = ({ product, onReload }) => {
                   <td>{bom.quantity}</td>
                   <td>{bom.unit}</td>
                   <td>
-                    <code className="text-muted">{bom.parentVariantSku}</code>
+                    <code className="text-muted">{bom.variantSku}</code>
                   </td>
                   <td className="text-end">
                     <Button color="danger" size="sm">
@@ -166,7 +148,7 @@ const BomTab: React.FC<BomTabProps> = ({ product, onReload }) => {
         <ModalBody>
           <Form onSubmit={validation.handleSubmit}>
             <div className="mb-3">
-              <Label className="form-label">Parent Variant *</Label>
+              <Label className="form-label">Variant (SKU) *</Label>
               <Input
                 type="select"
                 name="parentVariantId"
@@ -174,23 +156,12 @@ const BomTab: React.FC<BomTabProps> = ({ product, onReload }) => {
                 onChange={validation.handleChange}
                 invalid={validation.touched.parentVariantId && validation.errors.parentVariantId ? true : false}
               >
-                <option value="">Select parent variant</option>
-                {product.variants?.map((variant) => {
-                  let displayName = variant.sku;
-                  try {
-                    const attrs = variant.attributes ? JSON.parse(variant.attributes) : null;
-                    if (attrs && attrs.color && attrs.size) {
-                      displayName = `${variant.sku} (${attrs.color} / ${attrs.size})`;
-                    }
-                  } catch {
-                    // Use SKU if parsing fails
-                  }
-                  return (
-                    <option key={variant.id} value={variant.id}>
-                      {displayName}
-                    </option>
-                  );
-                })}
+                <option value="">Select variant</option>
+                {product.variants?.map((variant) => (
+                  <option key={variant.id} value={variant.id}>
+                    {variant.sku} {variant.color && variant.size ? `(${variant.color} / ${variant.size})` : ''}
+                  </option>
+                ))}
               </Input>
               {validation.touched.parentVariantId && validation.errors.parentVariantId && (
                 <FormFeedback type="invalid">{validation.errors.parentVariantId}</FormFeedback>
@@ -268,38 +239,6 @@ const BomTab: React.FC<BomTabProps> = ({ product, onReload }) => {
                   )}
                 </div>
               </div>
-            </div>
-            <div className="mb-3">
-              <Label className="form-label">Component Variant *</Label>
-              <Input
-                type="select"
-                name="componentVariantId"
-                value={validation.values.componentVariantId}
-                onChange={validation.handleChange}
-                invalid={validation.touched.componentVariantId && validation.errors.componentVariantId ? true : false}
-              >
-                <option value="">Select component variant</option>
-                {availableVariants.map((variant) => {
-                  let displayName = variant.sku;
-                  try {
-                    const attrs = variant.attributes ? JSON.parse(variant.attributes) : null;
-                    if (attrs && attrs.color && attrs.size) {
-                      displayName = `${variant.sku} (${attrs.color} / ${attrs.size})`;
-                    }
-                  } catch {
-                    // Use SKU if parsing fails
-                  }
-                  return (
-                    <option key={variant.id} value={variant.id}>
-                      {displayName}
-                    </option>
-                  );
-                })}
-              </Input>
-              {validation.touched.componentVariantId && validation.errors.componentVariantId && (
-                <FormFeedback type="invalid">{validation.errors.componentVariantId}</FormFeedback>
-              )}
-              <small className="text-muted">Select the variant that represents this component</small>
             </div>
             <div className="d-flex justify-content-end gap-2">
               <Button type="button" color="light" onClick={() => setIsAddModalOpen(false)}>

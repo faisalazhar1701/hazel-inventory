@@ -38,6 +38,7 @@ const ProductDetail = () => {
       document.title = `Product Detail | Hazel Inventory`;
       loadProduct();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
   const loadProduct = async () => {
@@ -106,7 +107,6 @@ const ProductDetail = () => {
                       <h5 className="card-title mb-0">
                         {product.name} {getStatusBadge(product.lifecycleStatus)}
                       </h5>
-                      <p className="text-muted mb-0">SKU: {product.sku}</p>
                     </Col>
                   </Row>
                 </CardHeader>

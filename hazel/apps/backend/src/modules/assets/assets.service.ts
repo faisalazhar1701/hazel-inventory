@@ -19,6 +19,7 @@ export interface AssetResponse {
   category: string;
   entityType: string;
   entityId: string;
+  version: number;
   createdAt: Date;
 }
 
@@ -65,7 +66,12 @@ export class AssetsService {
       throw new BadRequestException('Failed to save file');
     }
 
-    // Save asset record to database
+    // Simple versioning: version = 1 + count of existing assets for this entity (no DB column)
+    const existingCount = await this.prisma.asset.count({
+      where: { entityType, entityId },
+    });
+    const version = existingCount + 1;
+
     const asset = await this.prisma.asset.create({
       data: {
         fileName: file.originalname,
@@ -74,7 +80,7 @@ export class AssetsService {
         category,
         entityType,
         entityId,
-        filePath: uniqueFileName, // Store relative path
+        filePath: uniqueFileName,
       },
     });
 
@@ -86,6 +92,7 @@ export class AssetsService {
       category: asset.category,
       entityType: asset.entityType,
       entityId: asset.entityId,
+      version,
       createdAt: asset.createdAt,
     };
   }
@@ -109,16 +116,31 @@ export class AssetsService {
       },
     });
 
-    return assets.map(asset => ({
-      id: asset.id,
-      fileName: asset.fileName,
-      mimeType: asset.mimeType,
-      size: asset.size,
-      category: asset.category,
-      entityType: asset.entityType,
-      entityId: asset.entityId,
-      createdAt: asset.createdAt,
-    }));
+    const key = (a: { entityType: string; entityId: string }) => `${a.entityType}:${a.entityId}`;
+    const byEntity = new Map<string, typeof assets>();
+    for (const a of assets) {
+      const k = key(a);
+      if (!byEntity.has(k)) byEntity.set(k, []);
+      byEntity.get(k)!.push(a);
+    }
+    return assets.map(asset => {
+      const group = byEntity.get(key(asset))!;
+      const sorted = [...group].sort(
+        (x, y) => new Date(y.createdAt).getTime() - new Date(x.createdAt).getTime(),
+      );
+      const version = sorted.findIndex(a => a.id === asset.id) + 1;
+      return {
+        id: asset.id,
+        fileName: asset.fileName,
+        mimeType: asset.mimeType,
+        size: asset.size,
+        category: asset.category,
+        entityType: asset.entityType,
+        entityId: asset.entityId,
+        version,
+        createdAt: asset.createdAt,
+      };
+    });
   }
 
   /**
@@ -154,6 +176,13 @@ export class AssetsService {
       throw new NotFoundException(`Asset with ID ${assetId} not found`);
     }
 
+    const sameEntity = await this.prisma.asset.count({
+      where: {
+        entityType: asset.entityType,
+        entityId: asset.entityId,
+        createdAt: { lte: asset.createdAt },
+      },
+    });
     return {
       id: asset.id,
       fileName: asset.fileName,
@@ -162,6 +191,7 @@ export class AssetsService {
       category: asset.category,
       entityType: asset.entityType,
       entityId: asset.entityId,
+      version: sameEntity,
       createdAt: asset.createdAt,
     };
   }

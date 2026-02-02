@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import {
   Card,
   CardBody,
@@ -28,7 +28,6 @@ import FeatherIcon from 'feather-icons-react';
 
 const CustomerList: React.FC = () => {
   document.title = 'Customers | Hazel Inventory';
-  const navigate = useNavigate();
 
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [loading, setLoading] = useState(true);

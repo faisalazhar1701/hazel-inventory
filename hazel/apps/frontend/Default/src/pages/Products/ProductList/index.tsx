@@ -151,9 +151,6 @@ const ProductList = () => {
                             </div>
                             <CardBody>
                               <h5 className="card-title mb-2">{product.name}</h5>
-                              <p className="text-muted small mb-2">
-                                <code>{product.sku}</code>
-                              </p>
                               {product.collection && (
                                 <p className="text-muted small mb-2">
                                   <FeatherIcon icon="folder" size={12} className="me-1" />
@@ -197,7 +194,7 @@ const ProductList = () => {
                         <thead className="table-light">
                           <tr>
                             <th scope="col" style={{ width: '80px' }}>Image</th>
-                            <th scope="col">SKU</th>
+                            <th scope="col">Name</th>
                             <th scope="col">Name</th>
                             <th scope="col">Collection</th>
                             <th scope="col">Variants</th>
@@ -225,9 +222,6 @@ const ProductList = () => {
                                     <FeatherIcon icon="image" size={20} className="text-muted" />
                                   </div>
                                 )}
-                              </td>
-                              <td>
-                                <strong>{product.sku}</strong>
                               </td>
                               <td>{product.name}</td>
                               <td>

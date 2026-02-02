@@ -107,102 +107,90 @@ export class DashboardService {
 
   /**
    * Get Executive Dashboard
-   * Aggregates high-level KPIs across all modules
+   * Aggregates high-level KPIs across all modules. Never throws — returns safe defaults on error.
    */
   async getExecutiveDashboard(filters?: DashboardFilters): Promise<ExecutiveDashboard> {
-    const dateFilter = this.buildDateFilter(filters?.startDate, filters?.endDate);
-    
-    const orderWhere: any = { ...dateFilter };
-    if (filters?.channel) {
-      orderWhere.channel = filters.channel;
-    }
-
-    // Get total orders
-    const totalOrders = await this.prisma.order.count({
-      where: orderWhere,
-    });
-
-    // Get total revenue from finance transactions or orders
-    let totalRevenue = 0;
-    const orders = await this.prisma.order.findMany({
-      where: orderWhere,
-      select: { id: true, totalAmount: true, currency: true },
-    });
-
-    if (orders.length > 0) {
-      const orderIds = orders.map(o => o.id);
-      const revenueTransactions = await this.prisma.financialTransaction.findMany({
-        where: {
-          referenceType: 'ORDER',
-          referenceId: { in: orderIds },
-          creditAccount: {
-            code: 'REVENUE',
-          },
-        },
-      });
-
-      totalRevenue = revenueTransactions.reduce((sum, t) => sum + t.amount, 0);
-      
-      // Fallback to order totals if no finance transactions
-      if (totalRevenue === 0) {
-        totalRevenue = orders.reduce((sum, o) => sum + o.totalAmount, 0);
-      }
-    }
-
-    // Get gross margin from finance transactions
-    let totalCOGS = 0;
-    if (orders.length > 0) {
-      const orderIds = orders.map(o => o.id);
-      const cogsTransactions = await this.prisma.financialTransaction.findMany({
-        where: {
-          referenceType: 'ORDER',
-          referenceId: { in: orderIds },
-          debitAccount: {
-            code: 'COGS',
-          },
-        },
-      });
-      totalCOGS = cogsTransactions.reduce((sum, t) => sum + t.amount, 0);
-    }
-
-    const grossMargin = totalRevenue - totalCOGS;
-    const grossMarginPercent = totalRevenue > 0 ? (grossMargin / totalRevenue) * 100 : 0;
-
-    // Get active customers
-    const customerWhere: any = { status: 'ACTIVE' };
-    if (filters?.startDate || filters?.endDate) {
-      customerWhere.createdAt = dateFilter.createdAt;
-    }
-    const activeCustomers = await this.prisma.customer.count({
-      where: customerWhere,
-    });
-
-    // Get inventory value
-    const inventoryValuation = await this.financeService.getInventoryValuation({
-      warehouseId: filters?.warehouseId,
-    });
-    const inventoryValue = inventoryValuation.totalValue;
-
-    // Get fulfillment rate
-    const fulfilledOrders = await this.prisma.order.count({
-      where: {
-        ...orderWhere,
-        status: OrderStatus.FULFILLED,
-      },
-    });
-    const orderFulfillmentRate = totalOrders > 0 ? (fulfilledOrders / totalOrders) * 100 : 0;
-
-    const currency = orders.length > 0 ? orders[0].currency : 'USD';
-
-    return {
-      totalRevenue,
-      grossMarginPercent,
-      totalOrders,
-      activeCustomers,
-      inventoryValue,
-      orderFulfillmentRate,
-      currency,
+    const safe: ExecutiveDashboard = {
+      totalRevenue: 0,
+      grossMarginPercent: 0,
+      totalOrders: 0,
+      activeCustomers: 0,
+      inventoryValue: 0,
+      orderFulfillmentRate: 0,
+      currency: 'USD',
     };
+    try {
+      const dateFilter = this.buildDateFilter(filters?.startDate, filters?.endDate);
+      const orderWhere: any = { ...dateFilter };
+      if (filters?.channel) orderWhere.channel = filters.channel;
+
+      const totalOrders = await this.prisma.order.count({ where: orderWhere });
+      const orders = await this.prisma.order.findMany({
+        where: orderWhere,
+        select: { id: true, totalAmount: true, currency: true },
+      });
+
+      let totalRevenue = 0;
+      if (orders.length > 0) {
+        const orderIds = orders.map(o => o.id);
+        const revenueTransactions = await this.prisma.financialTransaction.findMany({
+          where: {
+            referenceType: 'ORDER',
+            referenceId: { in: orderIds },
+            creditAccount: { code: 'REVENUE' },
+          },
+        });
+        totalRevenue = revenueTransactions.reduce((sum, t) => sum + t.amount, 0);
+        if (totalRevenue === 0) totalRevenue = orders.reduce((sum, o) => sum + o.totalAmount, 0);
+      }
+
+      let totalCOGS = 0;
+      if (orders.length > 0) {
+        const orderIds = orders.map(o => o.id);
+        const cogsTransactions = await this.prisma.financialTransaction.findMany({
+          where: {
+            referenceType: 'ORDER',
+            referenceId: { in: orderIds },
+            debitAccount: { code: 'COGS' },
+          },
+        });
+        totalCOGS = cogsTransactions.reduce((sum, t) => sum + t.amount, 0);
+      }
+      const grossMarginPercent = totalRevenue > 0 ? ((totalRevenue - totalCOGS) / totalRevenue) * 100 : 0;
+
+      const customerWhere: any = { status: 'ACTIVE' };
+      if (filters?.startDate || filters?.endDate) customerWhere.createdAt = dateFilter.createdAt;
+      const activeCustomers = await this.prisma.customer.count({ where: customerWhere });
+
+      let inventoryValue = 0;
+      try {
+        const inventoryValuation = await this.financeService.getInventoryValuation({
+          warehouseId: filters?.warehouseId,
+        });
+        inventoryValue = inventoryValuation?.totalValue ?? 0;
+      } catch {
+        inventoryValue = 0;
+      }
+
+      const fulfilledOrders = await this.prisma.order.count({
+        where: { ...orderWhere, status: OrderStatus.FULFILLED },
+      });
+      const orderFulfillmentRate = totalOrders > 0 ? (fulfilledOrders / totalOrders) * 100 : 0;
+      const currency = orders.length > 0 ? orders[0].currency : 'USD';
+
+      return {
+        totalRevenue,
+        grossMarginPercent,
+        totalOrders,
+        activeCustomers,
+        inventoryValue,
+        orderFulfillmentRate,
+        currency,
+      };
+    } catch (err) {
+      this.logger.warn(`getExecutiveDashboard error: ${err instanceof Error ? err.message : err}`);
+      return safe;
+    }
   }
 
   /**
@@ -490,36 +478,45 @@ export class DashboardService {
 
   /**
    * Get Operations Dashboard
-   * Fulfillment and operations metrics
+   * Fulfillment and operations metrics. Never throws — returns safe defaults on error.
    */
   async getOperationsDashboard(filters?: DashboardFilters): Promise<OperationsDashboard> {
-    // Use analytics service for fulfillment performance
-    const fulfillmentPerformance = await this.analyticsService.getFulfillmentPerformance({
-      channel: filters?.channel,
-      startDate: filters?.startDate,
-      endDate: filters?.endDate,
-    });
-
-    // Get warehouse performance
-    const warehousePerformance = await this.analyticsService.getWarehouseFulfillment({
-      warehouseId: filters?.warehouseId,
-      startDate: filters?.startDate,
-      endDate: filters?.endDate,
-    });
-
-    return {
-      averageFulfillmentTimeHours: fulfillmentPerformance.averageFulfillmentTimeHours,
-      fulfillmentRate: fulfillmentPerformance.fulfillmentRate,
-      cancellationRate: fulfillmentPerformance.cancellationRate,
-      returnRate: fulfillmentPerformance.returnRate,
-      fulfillmentByChannel: fulfillmentPerformance.byChannel,
-      warehousePerformance: warehousePerformance.map(item => ({
-        warehouseId: item.warehouseId,
-        warehouseName: item.warehouseName,
-        ordersFulfilled: item.ordersFulfilled,
-        inventoryMovements: item.inventoryMovements,
-        averageFulfillmentTimeHours: item.averageFulfillmentTimeHours,
-      })),
+    const safe: OperationsDashboard = {
+      averageFulfillmentTimeHours: 0,
+      fulfillmentRate: 0,
+      cancellationRate: 0,
+      returnRate: 0,
+      fulfillmentByChannel: [],
+      warehousePerformance: [],
     };
+    try {
+      const fulfillmentPerformance = await this.analyticsService.getFulfillmentPerformance({
+        channel: filters?.channel,
+        startDate: filters?.startDate,
+        endDate: filters?.endDate,
+      });
+      const warehousePerformance = await this.analyticsService.getWarehouseFulfillment({
+        warehouseId: filters?.warehouseId,
+        startDate: filters?.startDate,
+        endDate: filters?.endDate,
+      });
+      return {
+        averageFulfillmentTimeHours: fulfillmentPerformance?.averageFulfillmentTimeHours ?? 0,
+        fulfillmentRate: fulfillmentPerformance?.fulfillmentRate ?? 0,
+        cancellationRate: fulfillmentPerformance?.cancellationRate ?? 0,
+        returnRate: fulfillmentPerformance?.returnRate ?? 0,
+        fulfillmentByChannel: fulfillmentPerformance?.byChannel ?? [],
+        warehousePerformance: (warehousePerformance ?? []).map(item => ({
+          warehouseId: item.warehouseId,
+          warehouseName: item.warehouseName,
+          ordersFulfilled: item.ordersFulfilled,
+          inventoryMovements: item.inventoryMovements,
+          averageFulfillmentTimeHours: item.averageFulfillmentTimeHours,
+        })),
+      };
+    } catch (err) {
+      this.logger.warn(`getOperationsDashboard error: ${err instanceof Error ? err.message : err}`);
+      return safe;
+    }
   }
 }

@@ -5,7 +5,6 @@ export type ProductLifecycleStatus = 'DRAFT' | 'ACTIVE' | 'DISCONTINUED';
 export interface Product {
   id: string;
   name: string;
-  sku: string;
   description?: string;
   imageUrl?: string;
   lifecycleStatus: ProductLifecycleStatus;
@@ -24,23 +23,26 @@ export interface ProductVariant {
   id: string;
   productId: string;
   sku: string;
-  attributes?: string; // JSON string
+  color: string;
+  size?: string;
+  price: number;
+  status: string;
   createdAt: string;
   updatedAt: string;
 }
 
 export interface BillOfMaterial {
   id: string;
-  parentVariantId: string;
-  componentVariantId: string;
+  variantId: string;
+  componentName: string;
+  category: string;
   quantity: number;
-  parentVariant?: ProductVariant;
-  componentVariant?: ProductVariant;
+  unit: string;
+  variant?: ProductVariant;
 }
 
 export interface CreateProductDto {
   name: string;
-  sku: string;
   description?: string;
   imageUrl?: string;
   lifecycleStatus?: ProductLifecycleStatus;
@@ -48,13 +50,25 @@ export interface CreateProductDto {
 }
 
 export interface CreateProductVariantDto {
-  sku: string;
-  attributes?: string; // JSON string
+  color: string;
+  size?: string;
+  price: number;
+  status?: string;
 }
 
 export interface CreateBomDto {
-  componentVariantId: string;
+  variantId: string;
+  componentName: string;
+  category: string;
   quantity: number;
+  unit: string;
+}
+
+export interface UpdateProductDto {
+  name?: string;
+  description?: string;
+  imageUrl?: string;
+  collectionId?: string;
 }
 
 export interface UpdateLifecycleStatusDto {
@@ -74,9 +88,7 @@ export interface ProductWithVariants extends Product {
     code?: string;
   };
   variants: (ProductVariant & {
-    bomAsParent: (BillOfMaterial & {
-      componentVariant: ProductVariant;
-    })[];
+    bomComponents: BillOfMaterial[];
   })[];
 }
 
@@ -115,6 +127,10 @@ class ProductsAPI {
 
   async createBom(variantId: string, data: CreateBomDto): Promise<BillOfMaterial> {
     return apiClient.post<BillOfMaterial>(`${this.basePath}/${variantId}/bom`, data);
+  }
+
+  async updateProduct(id: string, data: UpdateProductDto): Promise<Product> {
+    return apiClient.patch<Product>(`${this.basePath}/${id}`, data);
   }
 
   async updateLifecycleStatus(id: string, data: UpdateLifecycleStatusDto): Promise<Product> {

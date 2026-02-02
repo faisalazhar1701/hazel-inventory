@@ -42,6 +42,7 @@ const ReplenishmentList: React.FC = () => {
     loadProductVariants();
     loadWarehouses();
     loadSuggestions();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const loadProductVariants = async () => {

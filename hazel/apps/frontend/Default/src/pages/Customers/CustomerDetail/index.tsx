@@ -19,7 +19,6 @@ import {
   ModalHeader,
   ModalBody,
   ModalFooter,
-  Form,
   Label,
   Input,
   FormFeedback,
@@ -53,12 +52,14 @@ const CustomerDetail: React.FC = () => {
       document.title = `Customer ${id} | Hazel Inventory`;
       loadCustomer();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
   useEffect(() => {
     if (id && activeTab === '2') {
       loadCustomerUsers();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id, activeTab]);
 
   const loadCustomer = async () => {

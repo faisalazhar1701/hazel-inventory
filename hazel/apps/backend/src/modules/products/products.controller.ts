@@ -7,6 +7,8 @@ import {
   Patch,
   HttpCode,
   HttpStatus,
+  BadRequestException,
+  NotFoundException,
 } from '@nestjs/common';
 import {
   ProductsService,
@@ -26,7 +28,14 @@ export class ProductsController {
   @Post()
   @HttpCode(HttpStatus.CREATED)
   async createProduct(@Body() createProductDto: CreateProductDto) {
-    return this.productsService.createProduct(createProductDto);
+    try {
+      return await this.productsService.createProduct(createProductDto);
+    } catch (err) {
+      if (err instanceof BadRequestException || err instanceof NotFoundException) throw err;
+      throw new BadRequestException(
+        err instanceof Error ? err.message : 'Failed to create product',
+      );
+    }
   }
 
   @Get()
@@ -37,6 +46,16 @@ export class ProductsController {
   @Get(':id')
   async getProductById(@Param('id') id: string) {
     return this.productsService.getProductById(id);
+  }
+
+  @Post(':productId/variants/bulk')
+  @HttpCode(HttpStatus.CREATED)
+  async createProductVariantsBulk(
+    @Param('productId') productId: string,
+    @Body() body: { items: Omit<CreateProductVariantDto, 'productId'>[] },
+  ) {
+    const items = Array.isArray(body?.items) ? body.items : [];
+    return this.productsService.createProductVariantsBulk(productId, items);
   }
 
   @Post(':productId/variants')

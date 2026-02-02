@@ -21,7 +21,6 @@ import {
   Form,
   Label,
   Input,
-  FormFeedback,
   Table,
 } from 'reactstrap';
 import { useFormik } from 'formik';
@@ -54,6 +53,7 @@ const OrderDetail: React.FC = () => {
       document.title = `Order ${id} | Hazel Inventory`;
       loadOrder();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
   useEffect(() => {
@@ -64,6 +64,7 @@ const OrderDetail: React.FC = () => {
         loadOrderSummary();
       }
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [order]);
 
   const loadWarehouses = async () => {

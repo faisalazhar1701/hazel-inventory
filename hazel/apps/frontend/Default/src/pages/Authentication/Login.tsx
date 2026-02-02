@@ -12,7 +12,7 @@ import * as Yup from "yup";
 import { useFormik } from "formik";
 
 // actions
-import { loginUser, socialLogin, resetLoginFlag } from "../../slices/thunks";
+import { socialLogin, resetLoginFlag } from "../../slices/thunks";
 
 import logoLight from "../../assets/images/logo-light.png";
 import { createSelector } from 'reselect';

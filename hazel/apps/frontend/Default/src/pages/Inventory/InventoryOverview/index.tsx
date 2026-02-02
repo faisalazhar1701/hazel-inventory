@@ -48,6 +48,7 @@ const InventoryOverview: React.FC = () => {
       await loadWarehouses();
       await loadProducts();
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     initialize();
   }, []);
 
@@ -59,7 +60,8 @@ const InventoryOverview: React.FC = () => {
         loadAllInventory();
       }
     }
-  }, [filterWarehouse, loadingWarehouses]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filterWarehouse, loadingWarehouses, warehouses.length]);
 
   const loadWarehouses = async () => {
     try {
@@ -236,18 +238,8 @@ const InventoryOverview: React.FC = () => {
     (product.variants || []).map((variant: any) => ({
       ...variant,
       productName: product.name,
-      productSku: product.sku,
     }))
   );
-
-  const parseAttributes = (attributes?: string) => {
-    if (!attributes) return null;
-    try {
-      return JSON.parse(attributes);
-    } catch {
-      return null;
-    }
-  };
 
   return (
     <React.Fragment>
@@ -348,63 +340,50 @@ const InventoryOverview: React.FC = () => {
                           </tr>
                         </thead>
                         <tbody>
-                          {inventoryItems.map((item) => {
-                            const attrs = parseAttributes(item.productVariant.attributes);
-                            return (
-                              <tr key={item.id}>
-                                <td>
-                                  <div>
-                                    <strong>{item.productVariant.product.name}</strong>
-                                    <div className="text-muted small">SKU: {item.productVariant.product.sku}</div>
-                                  </div>
-                                </td>
-                                <td>
-                                  <div>
-                                    <strong>{item.productVariant.sku}</strong>
-                                    {attrs && (
-                                      <div className="text-muted small">
-                                        {Object.entries(attrs).map(([key, value]) => (
-                                          <span key={key} className="me-2">
-                                            {key}: {value as string}
-                                          </span>
-                                        ))}
-                                      </div>
-                                    )}
-                                  </div>
-                                </td>
-                                <td>
-                                  <div>
-                                    <strong>{item.warehouse.name}</strong>
-                                    <div className="text-muted small">{item.warehouse.location}</div>
-                                  </div>
-                                </td>
-                                <td>
-                                  <Badge
-                                    color={
-                                      item.quantity === 0
-                                        ? 'danger'
-                                        : item.quantity < 10
-                                        ? 'warning'
-                                        : 'success'
-                                    }
-                                    className="fs-6"
-                                  >
-                                    {item.quantity}
-                                  </Badge>
-                                </td>
-                                <td>
-                                  <Badge color="soft-info">{item.itemType}</Badge>
-                                </td>
-                                <td className="text-end">
-                                  <Link to={`/products/${item.productVariant.product.id}`}>
-                                    <Button color="soft-primary" size="sm">
-                                      <FeatherIcon icon="eye" size={14} />
-                                    </Button>
-                                  </Link>
-                                </td>
-                              </tr>
-                            );
-                          })}
+                          {inventoryItems.map((item) => (
+                            <tr key={item.id}>
+                              <td>
+                                <div>
+                                  <strong>{item.productVariant.product.name}</strong>
+                                </div>
+                              </td>
+                              <td>
+                                <div>
+                                  <strong>{item.productVariant.sku}</strong>
+                                </div>
+                              </td>
+                              <td>
+                                <div>
+                                  <strong>{item.warehouse.name}</strong>
+                                  <div className="text-muted small">{item.warehouse.location}</div>
+                                </div>
+                              </td>
+                              <td>
+                                <Badge
+                                  color={
+                                    item.quantity === 0
+                                      ? 'danger'
+                                      : item.quantity < 10
+                                      ? 'warning'
+                                      : 'success'
+                                  }
+                                  className="fs-6"
+                                >
+                                  {item.quantity}
+                                </Badge>
+                              </td>
+                              <td>
+                                <Badge color="soft-info">{item.itemType}</Badge>
+                              </td>
+                              <td className="text-end">
+                                <Link to={`/products/${item.productVariant.product.id}`}>
+                                  <Button color="soft-primary" size="sm">
+                                    <FeatherIcon icon="eye" size={14} />
+                                  </Button>
+                                </Link>
+                              </td>
+                            </tr>
+                          ))}
                         </tbody>
                       </Table>
                     </div>

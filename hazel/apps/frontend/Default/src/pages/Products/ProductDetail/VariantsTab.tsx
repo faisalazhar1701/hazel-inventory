@@ -12,31 +12,11 @@ interface VariantsTabProps {
 const VariantsTab: React.FC<VariantsTabProps> = ({ product }) => {
   const [expandedVariantId, setExpandedVariantId] = useState<string | null>(null);
 
-  const parseAttributes = (attributes?: string) => {
-    if (!attributes) return null;
-    try {
-      return JSON.parse(attributes);
-    } catch {
-      return null;
-    }
-  };
+  const getColorBadge = (color: string) =>
+    color ? <Badge color="primary">{color}</Badge> : <span className="text-muted">-</span>;
 
-  const getVariantDisplay = (variant: any) => {
-    const attrs = parseAttributes(variant.attributes);
-    if (attrs && attrs.color && attrs.size) {
-      return (
-        <div>
-          <Badge color="primary" className="me-2">
-            {attrs.color}
-          </Badge>
-          <Badge color="info">
-            {attrs.size}
-          </Badge>
-        </div>
-      );
-    }
-    return <span className="text-muted">-</span>;
-  };
+  const getSizeBadge = (size?: string) =>
+    size ? <Badge color="info">{size}</Badge> : <span className="text-muted">-</span>;
 
   return (
     <div>
@@ -61,7 +41,6 @@ const VariantsTab: React.FC<VariantsTabProps> = ({ product }) => {
             </thead>
             <tbody>
               {product.variants.map((variant) => {
-                const attrs = parseAttributes(variant.attributes);
                 const isExpanded = expandedVariantId === variant.id;
                 return (
                   <React.Fragment key={variant.id}>
@@ -69,20 +48,8 @@ const VariantsTab: React.FC<VariantsTabProps> = ({ product }) => {
                       <td>
                         <strong>{variant.sku}</strong>
                       </td>
-                      <td>
-                        {attrs?.color ? (
-                          <Badge color="primary">{attrs.color}</Badge>
-                        ) : (
-                          <span className="text-muted">-</span>
-                        )}
-                      </td>
-                      <td>
-                        {attrs?.size ? (
-                          <Badge color="info">{attrs.size}</Badge>
-                        ) : (
-                          <span className="text-muted">-</span>
-                        )}
-                      </td>
+                      <td>{getColorBadge(variant.color)}</td>
+                      <td>{getSizeBadge(variant.size)}</td>
                       <td>{new Date(variant.createdAt).toLocaleDateString()}</td>
                       <td className="text-end">
                         <Button

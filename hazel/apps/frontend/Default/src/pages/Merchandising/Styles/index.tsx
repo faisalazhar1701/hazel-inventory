@@ -205,10 +205,7 @@ const Styles: React.FC = () => {
                               </td>
                               <td>
                                 {style.product ? (
-                                  <div>
-                                    <div>{style.product.name}</div>
-                                    <small className="text-muted">{style.product.sku}</small>
-                                  </div>
+                                  <div>{style.product.name}</div>
                                 ) : (
                                   <Badge color="soft-secondary">Unassigned</Badge>
                                 )}

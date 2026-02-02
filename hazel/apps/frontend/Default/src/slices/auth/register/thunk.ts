@@ -8,7 +8,6 @@ import { getFirebaseBackend } from "../../../helpers/firebase_helper";
 
 // action
 import {
-  registerUserSuccessful,
   registerUserFailed,
   resetRegisterFlagChange,
 } from "./reducer";
@@ -19,11 +18,8 @@ const fireBaseBackend : any = getFirebaseBackend();
 // Is user register successfull then direct plot user in redux.
 export const registerUser = (user : any) => async (dispatch : any) => {
   try {
-    let response;
-
     if (process.env.REACT_APP_DEFAULTAUTH === "firebase") {
-      response = fireBaseBackend.registerUser(user.email, user.password);
-      // yield put(registerUserSuccessful(response));
+      fireBaseBackend.registerUser(user.email, user.password);
     } else if (process.env.REACT_APP_DEFAULTAUTH === "jwt") {
       // Mock data disabled - TODO: Replace with real API call using api-client
       throw new Error("JWT register not implemented - mock data disabled");

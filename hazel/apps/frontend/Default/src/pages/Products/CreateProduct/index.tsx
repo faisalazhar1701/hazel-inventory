@@ -24,19 +24,11 @@ import { toast } from 'react-toastify';
 import VariantBuilder, { VariantOption } from '../Components/VariantBuilder';
 import FeatherIcon from 'feather-icons-react';
 
-interface BomComponent {
-  name: string;
-  category: string;
-  quantity: number;
-  unit: string;
-}
-
 const CreateProduct = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [uploadingImage, setUploadingImage] = useState(false);
   const [variants, setVariants] = useState<VariantOption[]>([]);
-  const [bomComponents, setBomComponents] = useState<BomComponent[]>([]);
   const [imageUrl, setImageUrl] = useState<string>('');
   const [imagePreview, setImagePreview] = useState<string>('');
   const [collections, setCollections] = useState<any[]>([]);
@@ -58,14 +50,12 @@ const CreateProduct = () => {
     enableReinitialize: true,
     initialValues: {
       name: '',
-      sku: '',
       description: '',
       collectionId: '',
       lifecycleStatus: 'DRAFT' as ProductLifecycleStatus,
     },
     validationSchema: Yup.object({
       name: Yup.string().required('Product name is required'),
-      sku: Yup.string().required('SKU is required'),
       description: Yup.string(),
       collectionId: Yup.string(),
       lifecycleStatus: Yup.string()
@@ -78,7 +68,6 @@ const CreateProduct = () => {
         // Step 1: Create product
         const productData: CreateProductDto = {
           name: values.name,
-          sku: values.sku,
           description: values.description || undefined,
           imageUrl: imageUrl || undefined,
           lifecycleStatus: values.lifecycleStatus,
@@ -92,11 +81,10 @@ const CreateProduct = () => {
             if (variant.status === 'Active') {
               try {
                 const variantData: CreateProductVariantDto = {
-                  sku: variant.sku || `${product.sku}-${variant.color.toUpperCase().replace(/\s+/g, '-')}-${variant.size.toUpperCase()}`,
-                  attributes: JSON.stringify({
-                    color: variant.color,
-                    size: variant.size,
-                  }),
+                  color: variant.color,
+                  size: variant.size,
+                  price: variant.price || 0,
+                  status: variant.status === 'Active' ? 'ACTIVE' : 'INACTIVE',
                 };
                 await productsAPI.createVariant(product.id, variantData);
               } catch (error) {
@@ -183,19 +171,16 @@ const CreateProduct = () => {
                       <Col md={6}>
                         <div className="mb-3">
                           <Label className="form-label">
-                            SKU <span className="text-danger">*</span>
+                            SKU
                           </Label>
                           <Input
                             type="text"
                             name="sku"
-                            value={validation.values.sku}
-                            onChange={validation.handleChange}
-                            invalid={validation.touched.sku && validation.errors.sku ? true : false}
-                            placeholder="Enter SKU"
+                            value=""
+                            readOnly
+                            disabled
+                            placeholder="Variant SKUs will be generated automatically"
                           />
-                          {validation.touched.sku && validation.errors.sku && (
-                            <FormFeedback type="invalid">{validation.errors.sku}</FormFeedback>
-                          )}
                         </div>
                       </Col>
                       <Col md={12}>
@@ -259,7 +244,7 @@ const CreateProduct = () => {
                 {/* Section 2: Variants */}
                 <Card className="mb-3">
                   <VariantBuilder
-                    productCode={validation.values.sku || 'PROD'}
+                    productCode={validation.values.name || 'PROD'}
                     variants={variants}
                     onVariantsChange={setVariants}
                   />
