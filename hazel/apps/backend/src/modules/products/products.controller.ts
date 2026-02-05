@@ -50,9 +50,9 @@ export class ProductsController {
     await this.productsService.remove(id);
   }
 
-  @Get(':id')
-  async getProductById(@Param('id') id: string) {
-    return this.productsService.getProductById(id);
+  @Get(':productId/variants')
+  async listVariantsByProduct(@Param('productId') productId: string) {
+    return this.productsService.listVariantsByProduct(productId);
   }
 
   @Post(':productId/variants/bulk')
@@ -77,9 +77,9 @@ export class ProductsController {
     });
   }
 
-  @Get(':productId/variants')
-  async listVariantsByProduct(@Param('productId') productId: string) {
-    return this.productsService.listVariantsByProduct(productId);
+  @Get(':id')
+  async getProductById(@Param('id') id: string) {
+    return this.productsService.getProductById(id);
   }
 
   @Post(':variantId/bom')

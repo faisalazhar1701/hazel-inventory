@@ -180,9 +180,7 @@ export class OrdersService {
     const allowsCustomer = data.channel === OrderChannelEnum.DTC || data.channel === OrderChannelEnum.RETAIL || data.channel === OrderChannelEnum.POS;
 
     if (requiresCustomer && !data.customerId) {
-      throw new BadRequestException(
-        `Orders with channel ${data.channel} must have a customer. Please provide a customerId.`,
-      );
+      throw new BadRequestException('Customer required for B2B and WHOLESALE orders');
     }
 
     // Validate customer exists if provided

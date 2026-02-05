@@ -71,12 +71,18 @@ const StockMovements: React.FC = () => {
     try {
       setLoadingProducts(true);
       const productsData = await productsAPI.getProducts();
-      // Load variants for each product
+      if (!Array.isArray(productsData)) {
+        setProducts([]);
+        return;
+      }
       const productsWithVariants = await Promise.all(
-        productsData.map(async (product) => {
+        productsData.map(async (product: any) => {
+          if (product.variants && Array.isArray(product.variants) && product.variants.length > 0) {
+            return { ...product, variants: product.variants };
+          }
           try {
-            const variants = await productsAPI.listVariants(product.id);
-            return { ...product, variants };
+            const variants = await productsAPI.getProductVariants(product.id);
+            return { ...product, variants: variants || [] };
           } catch {
             return { ...product, variants: [] };
           }
@@ -86,6 +92,7 @@ const StockMovements: React.FC = () => {
     } catch (err) {
       console.error('Failed to load products:', err);
       toast.error('Failed to load products');
+      setProducts([]);
     } finally {
       setLoadingProducts(false);
     }
@@ -151,8 +158,8 @@ const StockMovements: React.FC = () => {
     },
   });
 
-  // Get all variants from all products
-  const allVariants = products.flatMap((product) =>
+  // Get all variants from all products (from GET /products include or per-product fetch)
+  const allVariants = products.flatMap((product: any) =>
     (product.variants || []).map((variant: any) => ({
       ...variant,
       productName: product.name,
@@ -199,6 +206,9 @@ const StockMovements: React.FC = () => {
                     </Col>
                     <Col md={4}>
                       <Label className="form-label">Filter by Product Variant</Label>
+                      {allVariants.length === 0 && !loadingProducts ? (
+                        <div className="text-danger small">No variants found. Create product variants first.</div>
+                      ) : null}
                       <Input
                         type="select"
                         value={filterVariant}
@@ -208,7 +218,7 @@ const StockMovements: React.FC = () => {
                         <option value="">All Variants</option>
                         {allVariants.map((variant) => (
                           <option key={variant.id} value={variant.id}>
-                            {variant.productName} - {variant.sku}
+                            {variant.productName} — {variant.color || ''} — {variant.size || ''} ({variant.sku})
                           </option>
                         ))}
                       </Input>
@@ -329,6 +339,9 @@ const StockMovements: React.FC = () => {
               <Label htmlFor="transferProductVariantId" className="form-label">
                 Product Variant <span className="text-danger">*</span>
               </Label>
+              {allVariants.length === 0 && !loadingProducts ? (
+                <div className="text-danger small mb-2">No variants found. Please create product variants first.</div>
+              ) : null}
               <Input
                 type="select"
                 id="transferProductVariantId"
@@ -342,7 +355,7 @@ const StockMovements: React.FC = () => {
                 <option value="">Select a product variant</option>
                 {allVariants.map((variant) => (
                   <option key={variant.id} value={variant.id}>
-                    {variant.productName} - {variant.sku}
+                    {variant.productName} — {variant.color || ''} — {variant.size || ''} ({variant.sku})
                   </option>
                 ))}
               </Input>

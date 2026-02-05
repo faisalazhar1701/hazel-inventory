@@ -2,11 +2,6 @@ import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Dropdown, DropdownMenu, DropdownToggle, Form } from 'reactstrap';
 
-//import images
-import logoSm from "../assets/images/logo-sm.png";
-import logoDark from "../assets/images/logo-dark.png";
-import logoLight from "../assets/images/logo-light.png";
-
 //import Components
 import SearchOption from '../Components/Common/SearchOption';
 import ProfileDropdown from '../Components/Common/ProfileDropdown';
@@ -71,74 +66,72 @@ const Header = ({ onChangeLayoutMode, layoutModeType, headerClass } : any) => {
         <React.Fragment>
             <header id="page-topbar" className={headerClass}>
                 <div className="layout-width">
-                    <div className="navbar-header">
-                        <div className="d-flex">
-
-                            <div className="navbar-brand-box horizontal-logo d-flex align-items-center">
-                                <Link to="/" className="logo logo-dark d-flex align-items-center text-decoration-none">
-                                    <span className="logo-sm">
-                                        <img src={logoSm} alt="Hazel" height="22" />
-                                    </span>
-                                    <span className="logo-lg d-flex align-items-center">
-                                        <img src={logoDark} alt="Hazel" height="17" className="me-2" />
-                                        <span className="text-dark fw-semibold">Hazel Inventory System</span>
-                                    </span>
-                                </Link>
-
-                                <Link to="/" className="logo logo-light d-flex align-items-center text-decoration-none">
-                                    <span className="logo-sm">
-                                        <img src={logoSm} alt="Hazel" height="22" />
-                                    </span>
-                                    <span className="logo-lg d-flex align-items-center">
-                                        <img src={logoLight} alt="Hazel" height="17" className="me-2" />
-                                        <span className="text-white fw-semibold">Hazel Inventory System</span>
-                                    </span>
-                                </Link>
-                            </div>
-
+                    <div
+                        className="navbar-header d-flex align-items-center justify-content-between flex-nowrap"
+                        style={{ minHeight: '70px' }}>
+                        <div className="d-flex align-items-center flex-nowrap">
                             <button
                                 onClick={toogleMenuBtn}
                                 type="button"
-                                className="btn btn-sm px-3 fs-16 header-item vertical-menu-btn topnav-hamburger"
-                                id="topnav-hamburger-icon">
+                                className="btn btn-sm px-3 fs-16 header-item vertical-menu-btn topnav-hamburger me-2"
+                                id="topnav-hamburger-icon"
+                                aria-label="Toggle sidebar">
                                 <span className="hamburger-icon">
                                     <span></span>
                                     <span></span>
                                     <span></span>
                                 </span>
                             </button>
-
-
-                            <SearchOption />
+                            <Link
+                                to="/"
+                                className="logo logo-dark d-flex align-items-center text-decoration-none text-dark fw-bold text-nowrap me-2"
+                                style={{ fontSize: '1.1rem' }}>
+                                Hazel Inventory System
+                            </Link>
+                            <Link
+                                to="/"
+                                className="logo logo-light d-flex align-items-center text-decoration-none text-white fw-bold text-nowrap me-2"
+                                style={{ fontSize: '1.1rem' }}>
+                                Hazel Inventory System
+                            </Link>
                         </div>
 
-                        <div className="d-flex align-items-center">
-
-                            <Dropdown isOpen={search} toggle={toogleSearch} className="d-md-none topbar-head-dropdown header-item">
-                                <DropdownToggle type="button" tag="button" className="btn btn-icon btn-topbar btn-ghost-secondary rounded-circle">
+                        <div className="d-flex align-items-center flex-nowrap gap-1">
+                            <div className="d-none d-md-block">
+                                <SearchOption />
+                            </div>
+                            <Dropdown
+                                isOpen={search}
+                                toggle={toogleSearch}
+                                className="d-md-none topbar-head-dropdown header-item">
+                                <DropdownToggle
+                                    type="button"
+                                    tag="button"
+                                    className="btn btn-icon btn-topbar btn-ghost-secondary rounded-circle">
                                     <i className="bx bx-search fs-22"></i>
                                 </DropdownToggle>
                                 <DropdownMenu className="dropdown-menu-lg dropdown-menu-end p-0">
                                     <Form className="p-3">
                                         <div className="form-group m-0">
                                             <div className="input-group">
-                                                <input type="text" className="form-control" placeholder="Search ..."
-                                                    aria-label="Recipient's username" />
-                                                <button className="btn btn-primary" type="submit"><i
-                                                    className="mdi mdi-magnify"></i></button>
+                                                <input
+                                                    type="text"
+                                                    className="form-control"
+                                                    placeholder="Search ..."
+                                                    aria-label="Search"
+                                                />
+                                                <button className="btn btn-primary" type="submit">
+                                                    <i className="mdi mdi-magnify"></i>
+                                                </button>
                                             </div>
                                         </div>
                                     </Form>
                                 </DropdownMenu>
                             </Dropdown>
-
-                            {/* Dark/Light Mode set */}
                             <LightDark
                                 layoutMode={layoutModeType}
                                 onChangeLayoutMode={onChangeLayoutMode}
                             />
-
-                            {/* ProfileDropdown */}
                             <ProfileDropdown />
                         </div>
                     </div>

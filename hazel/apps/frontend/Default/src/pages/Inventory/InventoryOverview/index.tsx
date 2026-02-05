@@ -80,12 +80,18 @@ const InventoryOverview: React.FC = () => {
     try {
       setLoadingProducts(true);
       const productsData = await productsAPI.getProducts();
-      // Load variants for each product
+      if (!Array.isArray(productsData)) {
+        setProducts([]);
+        return;
+      }
       const productsWithVariants = await Promise.all(
-        productsData.map(async (product) => {
+        productsData.map(async (product: any) => {
+          if (product.variants && Array.isArray(product.variants) && product.variants.length > 0) {
+            return { ...product, variants: product.variants };
+          }
           try {
-            const variants = await productsAPI.listVariants(product.id);
-            return { ...product, variants };
+            const variants = await productsAPI.getProductVariants(product.id);
+            return { ...product, variants: variants || [] };
           } catch {
             return { ...product, variants: [] };
           }
@@ -95,6 +101,7 @@ const InventoryOverview: React.FC = () => {
     } catch (err) {
       console.error('Failed to load products:', err);
       toast.error('Failed to load products');
+      setProducts([]);
     } finally {
       setLoadingProducts(false);
     }
@@ -233,13 +240,16 @@ const InventoryOverview: React.FC = () => {
     },
   });
 
-  // Get all variants from all products
-  const allVariants = products.flatMap((product) =>
+  // Get all variants from all products (from GET /products include or per-product fetch)
+  const allVariants = products.flatMap((product: any) =>
     (product.variants || []).map((variant: any) => ({
       ...variant,
       productName: product.name,
     }))
   );
+  if (process.env.NODE_ENV === 'development' && allVariants.length > 0) {
+    console.log('Loaded Variants:', allVariants.length, allVariants);
+  }
 
   return (
     <React.Fragment>
@@ -404,6 +414,9 @@ const InventoryOverview: React.FC = () => {
               <Label htmlFor="addProductVariantId" className="form-label">
                 Product Variant <span className="text-danger">*</span>
               </Label>
+              {allVariants.length === 0 && !loadingProducts ? (
+                <div className="text-danger small mb-2">No variants found. Please create product variants first.</div>
+              ) : null}
               <Input
                 type="select"
                 id="addProductVariantId"
@@ -543,6 +556,9 @@ const InventoryOverview: React.FC = () => {
               <Label htmlFor="deductProductVariantId" className="form-label">
                 Product Variant <span className="text-danger">*</span>
               </Label>
+              {allVariants.length === 0 && !loadingProducts ? (
+                <div className="text-danger small mb-2">No variants found. Please create product variants first.</div>
+              ) : null}
               <Input
                 type="select"
                 id="deductProductVariantId"

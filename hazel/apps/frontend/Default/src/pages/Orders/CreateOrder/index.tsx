@@ -81,12 +81,14 @@ const CreateOrder: React.FC = () => {
 
   const loadCustomers = async () => {
     try {
-      const data = await customersAPI.listCustomers();
-      // Filter to only active customers
-      setCustomers(data.filter(c => c.status === 'ACTIVE'));
+      const res = await customersAPI.getCustomers();
+      const active = Array.isArray(res) ? res.filter((c) => c.status === 'ACTIVE') : [];
+      setCustomers(active);
+      if (process.env.NODE_ENV === 'development') {
+        console.log('Customers loaded:', active);
+      }
     } catch (err) {
-      console.error('Failed to load customers:', err);
-      // Don't show error - customers are optional
+      console.error('Failed to load customers', err);
     }
   };
 
@@ -116,6 +118,10 @@ const CreateOrder: React.FC = () => {
     onSubmit: async (values) => {
       if (items.length === 0 || items.some((item) => !item.productVariantId || !item.warehouseId || item.quantity <= 0)) {
         toast.error('Please add at least one valid order item');
+        return;
+      }
+      if ((values.channel === OrderChannel.B2B || values.channel === OrderChannel.WHOLESALE) && !values.customerId) {
+        toast.error('Customer is required for B2B and WHOLESALE orders');
         return;
       }
 
@@ -219,9 +225,8 @@ const CreateOrder: React.FC = () => {
                             value={validation.values.customerId}
                             onChange={validation.handleChange}
                             invalid={validation.touched.customerId && !!validation.errors.customerId}
-                            disabled={validation.values.channel === OrderChannel.DTC}
                           >
-                            <option value="">Select customer</option>
+                            <option value="">Select customer (optional for DTC)</option>
                             {customers
                               .filter(c => {
                                 // Filter customers by type based on channel

@@ -61,6 +61,10 @@ class CustomersAPI {
     return apiClient.get<Customer[]>(this.basePath);
   }
 
+  async getCustomers(): Promise<Customer[]> {
+    return this.listCustomers();
+  }
+
   async getCustomerById(id: string): Promise<Customer> {
     return apiClient.get<Customer>(`${this.basePath}/${id}`);
   }

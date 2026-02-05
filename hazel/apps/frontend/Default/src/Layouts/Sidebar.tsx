@@ -1,10 +1,6 @@
 import React, { useEffect } from "react";
 import { Link } from "react-router-dom";
 import SimpleBar from "simplebar-react";
-//import logo
-import logoSm from "../assets/images/logo-sm.png";
-import logoDark from "../assets/images/logo-dark.png";
-import logoLight from "../assets/images/logo-light.png";
 
 //Import Components
 import VerticalLayout from "./VerticalLayouts";
@@ -38,24 +34,13 @@ const Sidebar = ({ layoutType } : any) => {
     <React.Fragment>
       <div className="app-menu navbar-menu">
         <div className="navbar-brand-box">
-          <Link to="/" className="logo logo-dark text-decoration-none d-flex align-items-center">
-            <span className="logo-sm">
-              <img src={logoSm} alt="Hazel" height="22" />
-            </span>
-            <span className="logo-lg d-flex align-items-center">
-              <img src={logoDark} alt="Hazel" height="17" className="me-2" />
-              <span className="text-dark fw-semibold small">Hazel Inventory System</span>
-            </span>
+          <Link to="/" className="logo logo-dark text-decoration-none d-flex align-items-center justify-content-center text-dark fw-bold">
+            <span className="logo-sm" style={{ fontSize: '1rem' }}>H</span>
+            <span className="logo-lg" style={{ fontSize: '0.95rem' }}>Hazel Inventory System</span>
           </Link>
-
-          <Link to="/" className="logo logo-light text-decoration-none d-flex align-items-center">
-            <span className="logo-sm">
-              <img src={logoSm} alt="Hazel" height="22" />
-            </span>
-            <span className="logo-lg d-flex align-items-center">
-              <img src={logoLight} alt="Hazel" height="17" className="me-2" />
-              <span className="text-white fw-semibold small">Hazel Inventory System</span>
-            </span>
+          <Link to="/" className="logo logo-light text-decoration-none d-flex align-items-center justify-content-center text-white fw-bold">
+            <span className="logo-sm" style={{ fontSize: '1rem' }}>H</span>
+            <span className="logo-lg" style={{ fontSize: '0.95rem' }}>Hazel Inventory System</span>
           </Link>
           <button
             onClick={addEventListenerOnSmHoverMenu}

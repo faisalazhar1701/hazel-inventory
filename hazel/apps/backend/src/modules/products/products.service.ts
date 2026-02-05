@@ -69,6 +69,9 @@ export class AssignProductRelationsDto {
 export class ProductsService {
   constructor(private prisma: PrismaService) {}
 
+  /**
+   * Create product. Product model has NO sku — SKU exists only on ProductVariant and is generated there.
+   */
   async createProduct(dto: CreateProductDto): Promise<Product> {
     try {
       if (dto.collectionId) {
@@ -114,6 +117,16 @@ export class ProductsService {
         createdAt: 'desc',
       },
       include: {
+        variants: {
+          select: {
+            id: true,
+            sku: true,
+            color: true,
+            size: true,
+            status: true,
+            price: true,
+          },
+        },
         collection: {
           select: {
             id: true,
@@ -198,10 +211,11 @@ export class ProductsService {
       );
     }
 
-    const baseSku = product.name.replace(/\s+/g, '-').toUpperCase();
+    // SKU only on ProductVariant: styleName-color-size (styleName = product.name)
+    const styleName = product.name.replace(/\s+/g, '-').toUpperCase();
     const colorPart = color.replace(/\s+/g, '-').toUpperCase();
-    const sizePart = size.replace(/\s+/g, '-').toUpperCase();
-    const rawSku = [baseSku, colorPart, sizePart].filter(Boolean).join('-');
+    const sizePart = (size || 'OS').replace(/\s+/g, '-').toUpperCase();
+    const rawSku = [styleName, colorPart, sizePart].filter(Boolean).join('-');
 
     let sku = rawSku;
     let counter = 1;
@@ -276,6 +290,17 @@ export class ProductsService {
   async listVariantsByProduct(productId: string): Promise<ProductVariant[]> {
     return this.prisma.productVariant.findMany({
       where: { productId },
+      select: {
+        id: true,
+        sku: true,
+        color: true,
+        size: true,
+        status: true,
+        price: true,
+        productId: true,
+        createdAt: true,
+        updatedAt: true,
+      },
     });
   }
 

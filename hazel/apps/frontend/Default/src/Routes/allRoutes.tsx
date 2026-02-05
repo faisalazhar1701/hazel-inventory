@@ -112,6 +112,7 @@ import TermsCondition from '../pages/Pages/TermsCondition';
 
 // // User Profile
 import UserProfile from "../pages/Authentication/user-profile";
+import ProfileSettings from "../pages/Settings/ProfileSettings";
 
 import UiLink from "../pages/BaseUi/UiLinks/UiLinks";
 
@@ -297,6 +298,7 @@ const authProtectedRoutes = [
 
   //User Profile
   { path: "/profile", component: <UserProfile /> },
+  { path: "/settings/profile", component: <ProfileSettings /> },
 
   // this route should be at the end of all other routes
   // eslint-disable-next-line react/display-name
